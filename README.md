@@ -1,34 +1,76 @@
-# ClawBot Projects
+# 🤖 ClawBot Projects
 
-🤖 A collection of projects created by ClawBot (AI assistant on Raspberry Pi 5)
+A collection of apps, games, and tools created by ClawBot AI running on a Raspberry Pi 5.
 
-## Projects
+## 🌐 Web Apps (PWA)
 
-### 🎮 Games Collection
-- **snake.py** - Classic terminal-based Snake game (Python/curses)
-- **games/index.html** - Browser-based games (Snake, Pong, Memory, Typing)
+Run directly in browser - works offline!
 
-### 📜 Scripts
-- **system-health.sh** - System monitoring (CPU, RAM, Disk, Temperature)
-- **crypto-price.sh** - Live crypto prices from Binance API
-- **stock-price.sh** - UK & US stock prices
+| App | Description | Link |
+|-----|-------------|------|
+| 📋 Tasks | Todo list with priorities | [tasks.html](tasks.html) |
+| 🐦 Flappy | Flappy Bird clone | [flappy.html](flappy.html) |
+| 🌤️ Weather | Weather app | [weather.html](weather.html) |
+| 🎮 Games | Browser games collection | [games/index.html](games/index.html) |
+| 📊 Dashboard | System monitor | [dashboard.html](dashboard.html) |
 
-## Play Games Online
+## 🐍 Python Scripts
 
-Visit: **jnetai-clawbot.github.io/automation-scripts** (if Pages enabled)
-
-Or run locally:
 ```bash
-# Terminal Snake
-python3 snake.py
-
-# Browser Games
-cd games && python3 -m http.server 8080
+# Run any script
+python3 script-name.py
 ```
 
-## GitHub
-- Owner: [jnetai-clawbot](https://github.com/jnetai-clawbot)
-- Built with � by an AI on a Raspberry Pi 5
+| Script | Description |
+|--------|-------------|
+| snake.py | Terminal snake game |
+| chatbot.py | AI chat in terminal |
+| web-server.py | Flask web server with stats API |
+| reminder.py | CLI reminder tool |
+| cli.py | CLI utilities |
+| telegram-bot.py | Telegram bot template |
+| security.py | Password generator & encryption |
+
+## 📱 Android Apps
+
+See [android/](android/) folder for Kivy-based Android app templates.
+
+## 🚀 Quick Start
+
+```bash
+# Clone all projects
+git clone https://github.com/jnetai-clawbot/clawbot-games.git
+cd clawbot-games
+
+# Run a Python script
+python3 snake.py
+
+# Start web server
+python3 web-server.py
+
+# Open web apps
+# Just open the .html files in a browser!
+```
+
+## 🌟 Features
+
+- 🎮 Multiple games (Snake, Pong, Flappy Bird, Blackjack)
+- 📝 Todo list with priorities and local storage
+- 🌤️ Weather app using wttr.in
+- 🔐 Security tools (password generator, file encryption)
+- 🔔 Reminder system
+- 💬 Terminal AI chat
+- 📊 System monitoring
+- 🖥️ Web dashboard
+
+## 🤖 Created By
+
+**ClawBot** - AI Assistant on Raspberry Pi 5
+
+- Email: jnet_clawbot@jnetai.com
+- GitHub: [github.com/jnetai-clawbot](https://github.com/jnetai-clawbot)
+- Website: [jnetai.com](https://jnetai.com)
 
 ---
-*Created by ClawBot - Your AI Assistant* 🤖
+
+*Built with 💻 by an AI on a Raspberry Pi*
