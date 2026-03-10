@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClawBot DJ Mixer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #00ff88;
+            --secondary: #ff0066;
+            --bg: #0a0a0a;
+            --deck: #1a1a1a;
+            --text: #ffffff;
+            --muted: #666666;
+            --glow-green: 0 0 20px rgba(0, 255, 136, 0.5);
+            --glow-pink: 0 0 20px rgba(255, 0, 102, 0.5);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Background effects */
+        .bg-effects {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .bg-gradient {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(0, 255, 136, 0.1) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 50%, rgba(255, 0, 102, 0.1) 0%, transparent 50%);
+        }
+
+        .visualizer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            padding: 20px;
+            opacity: 0.3;
+        }
+
+        .bar {
+            width: 3px;
+            background: linear-gradient(to top, var(--primary), var(--secondary));
+            border-radius: 2px;
+            animation: visualize 0.5s ease-in-out infinite;
+        }
+
+        @keyframes visualize {
+            0%, 100% { height: 20%; }
+            50% { height: 80%; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 2em;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: none;
+        }
+
+        header p {
+            color: var(--muted);
+            font-size: 0.9em;
+        }
+
+        /* Main Mixer */
+        .mixer {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        /* Decks */
+        .deck {
+            background: var(--deck);
+            border-radius: 20px;
+            padding: 25px;
+            border: 2px solid transparent;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        .deck.deck-a {
+            border-color: var(--primary);
+        }
+
+        .deck.deck-a.active {
+            box-shadow: var(--glow-green);
+        }
+
+        .deck.deck-b {
+            border-color: var(--secondary);
+        }
+
+        .deck.deck-b.active {
+            box-shadow: var(--glow-pink);
+        }
+
+        .deck-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .deck-name {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+
+        .deck-a .deck-name { color: var(--primary); }
+        .deck-b .deck-name { color: var(--secondary); }
+
+        .deck-status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .deck-a .deck-status {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--primary);
+        }
+
+        .deck-b .deck-status {
+            background: rgba(255, 0, 102, 0.2);
+            color: var(--secondary);
+        }
+
+        .deck-status.playing {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Waveform Display */
+        .waveform-container {
+            background: #000;
+            border-radius: 10px;
+            height: 120px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .waveform {
+            position: absolute;
+            top: 0;
+            width: 50%;
+            height: 100%;
+        }
+
+        .deck-a .waveform {
+            left: 0;
+            background: var(--primary);
+            opacity: 0.7;
+        }
+
+        .deck-b .waveform {
+            right: 0;
+            background: var(--secondary);
+            opacity: 0.7;
+        }
+
+        .waveform-progress {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: width 0.1s linear;
+        }
+
+        .deck-a .waveform-progress { left: 0; }
+        .deck-b .waveform-progress { right: 0; }
+
+        /* Track Info */
+        .track-info {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .track-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .track-time {
+            font-size: 0.9em;
+            color: var(--muted);
+            font-family: monospace;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn:hover {
+            transform: scale(1.1);
+        }
+
+        .btn-play {
+            width: 70px;
+            height: 70px;
+            font-size: 1.5em;
+        }
+
+        .deck-a .btn-play {
+            background: var(--primary);
+            color: #000;
+        }
+
+        .deck-b .btn-play {
+            background: var(--secondary);
+            color: #fff;
+        }
+
+        .btn-cue {
+            background: #333;
+            color: #fff;
+        }
+
+        /* Sliders */
+        .sliders {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider-label {
+            width: 50px;
+            font-size: 0.8em;
+            color: var(--muted);
+        }
+
+        .slider-container {
+            flex: 1;
+            position: relative;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            background: #333;
+            border-radius: 4px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .deck-a input[type="range"]::-webkit-slider-thumb {
+            background: var(--primary);
+            box-shadow: var(--glow-green);
+        }
+
+        .deck-b input[type="range"]::-webkit-slider-thumb {
+            background: var(--secondary);
+            box-shadow: var(--glow-pink);
+        }
+
+        .slider-value {
+            width: 40px;
+            text-align: right;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+
+        /* Crossfader */
+        .crossfader-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: var(--deck);
+            border-radius: 20px;
+            min-width: 150px;
+        }
+
+        .crossfader-label {
+            font-size: 1em;
+            margin-bottom: 15px;
+            color: var(--muted);
+        }
+
+        .crossfader-container {
+            width: 30px;
+            height: 200px;
+            background: #000;
+            border-radius: 15px;
+            position: relative;
+            margin: 10px 0;
+        }
+
+        .crossfader {
+            position: absolute;
+            width: 50px;
+            height: 30px;
+            background: linear-gradient(90deg, var(--primary), #fff, var(--secondary));
+            border-radius: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: grab;
+            top: 50%;
+            transition: top 0.1s;
+        }
+
+        .crossfader:active {
+            cursor: grabbing;
+        }
+
+        .crossfader-value {
+            text-align: center;
+            font-family: monospace;
+            margin-top: 10px;
+        }
+
+        /* Master Volume */
+        .master-volume {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .master-volume label {
+            display: block;
+            text-align: center;
+            margin-bottom: 10px;
+            color: var(--muted);
+        }
+
+        /* Playlist */
+        .playlist-section {
+            margin-top: 30px;
+            background: var(--deck);
+            border-radius: 20px;
+            padding: 20px;
+        }
+
+        .playlist-section h3 {
+            margin-bottom: 15px;
+            color: var(--muted);
+        }
+
+        .playlist {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .playlist-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .playlist-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .playlist-item.playing {
+            background: rgba(0, 255, 136, 0.2);
+            border-left: 3px solid var(--primary);
+        }
+
+        .playlist-item-info {
+            flex: 1;
+        }
+
+        .playlist-item-title {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .playlist-item-duration {
+            font-size: 0.8em;
+            color: var(--muted);
+            font-family: monospace;
+        }
+
+        .playlist-item-add {
+            padding: 8px 15px;
+            background: #333;
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .playlist-item-add:hover {
+            background: #444;
+        }
+
+        /* File Input */
+        .file-input-wrapper {
+            margin-bottom: 20px;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            display: none;
+        }
+
+        .file-btn {
+            width: 100%;
+            padding: 15px;
+            background: #333;
+            border: 2px dashed #555;
+            border-radius: 10px;
+            color: var(--muted);
+            cursor: pointer;
+            text-align: center;
+            transition: border-color 0.3s, color 0.3s;
+        }
+
+        .file-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Beat Indicators */
+        .beat-indicators {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 15px;
+        }
+
+        .beat {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #333;
+            transition: background 0.1s;
+        }
+
+        .beat.active {
+            background: var(--primary);
+        }
+
+        .deck-b .beat.active {
+            background: var(--secondary);
+        }
+
+        /* Loading overlay */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .loading.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .loading-content {
+            text-align: center;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #333;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .mixer {
+                grid-template-columns: 1fr;
+            }
+
+            .crossfader-section {
+                flex-direction: row;
+                gap: 20px;
+            }
+
+            .crossfader-container {
+                width: 200px;
+                height: 30px;
+            }
+
+            .crossfader {
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-effects">
+        <div class="bg-gradient"></div>
+        <div class="visualizer" id="visualizer"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>🎧 ClawBot DJ Mixer</h1>
+            <p>Professional crossfade DJ system • 8 second seamless transitions</p>
+        </header>
+
+        <div class="mixer">
+            <!-- Deck A -->
+            <div class="deck deck-a active" id="deckA">
+                <div class="deck-label">
+                    <span class="deck-name">DECK A</span>
+                    <span class="deck-status" id="statusA">READY</span>
+                </div>
+
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileA" accept="audio/*" multiple>
+                    <label for="fileA" class="file-btn">📁 Load Tracks to Deck A</label>
+                </div>
+
+                <div class="waveform-container">
+                    <div class="waveform" id="waveformA"></div>
+                    <div class="waveform-progress" id="progressA" style="width: 0%"></div>
+                </div>
+
+                <div class="track-info">
+                    <div class="track-title" id="titleA">No track loaded</div>
+                    <div class="track-time" id="timeA">00:00 / 00:00</div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-cue" onclick="cueDeck('A')">◉</button>
+                    <button class="btn btn-play" onclick="playDeck('A')">▶</button>
+                    <button class="btn btn-cue" onclick="cueDeck('A')">◉</button>
+                </div>
+
+                <div class="beat-indicators" id="beatsA">
+                    <div class="beat"></div>
+                    <div class="beat"></div>
+                    <div class="beat"></div>
+                    <div class="beat"></div>
+                </div>
+
+                <div class="sliders">
+                    <div class="slider-group">
+                        <span class="slider-label">GAIN</span>
+                        <div class="slider-container">
+                            <input type="range" id="gainA" min="0" max="150" value="100" oninput="updateGain('A')">
+                        </div>
+                        <span class="slider-value" id="gainValueA">100%</span>
+                    </div>
+                    <div class="slider-group">
+                        <span class="slider-label">LOW</span>
+                        <div class="slider-container">
+                            <input type="range" id="lowA" min="0" max="150" value="100" oninput="updateEQ('A', 'low')">
+                        </div>
+                        <span class="slider-value" id="lowValueA">100%</span>
+                    </div>
+                    <div class="slider-group">
+                        <span class="slider-label">MID</span>
+                        <div class="slider-container">
+                            <input type="range" id="midA" min="0" max="150" value="100" oninput="updateEQ('A', 'mid')">
+                        </div>
+                        <span class="slider-value" id="midValueA">100%</span>
+                    </div>
+                    <div class="slider-group">
+                        <span class="slider-label">HIGH</span>
+                        <div class="slider-container">
+                            <input type="range" id="highA" min="0" max="150" value="100" oninput="updateEQ('A', 'high')">
+                        </div>
+                        <span class="slider-value" id="highValueA">100%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Crossfader -->
+            <div class="crossfader-section">
+                <span class="crossfader-label">🎚️ CROSSFADER</span>
+                <div class="crossfader-container">
+                    <div class="crossfader" id="crossfader" style="top: 50%"></div>
+                </div>
+                <div class="crossfader-value" id="crossfadeValue">A ◁▷ B</div>
+
+                <div class="master-volume">
+                    <label>MASTER</label>
+                    <input type="range" id="master" min="0" max="150" value="100" oninput="updateMaster()">
+                </div>
+            </div>
+
+            <!-- Deck B -->
+            <div class="deck deck-b" id="deckB">
+                <div class="deck-label">
+                    <span class="deck-name">DECK B</span>
+                    <span class="deck-status" id="statusB">READY</span>
+                </div>
+
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileB" accept="audio/*" multiple>
+                    <label for="fileB" class="file-btn">📁 Load Tracks to Deck B</label>
+                </div>
+
+                <div class="waveform-container">
+                    <div class="waveform" id="waveformB"></div>
+                    <div class="waveform-progress" id="progressB" style="width: 0%"></div>
+                </div>
+
+                <div class="track-info">
+                    <div class="track-title" id="titleB">No track loaded</div>
+                    <div class="track-time" id="timeB">00:00 / 00:00</div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-cue" onclick="cueDeck('B')">◉</button>
+                    <button class="btn btn-play" onclick="playDeck('B')">▶</button>
+                    <button class="btn btn-cue" onclick="cueDeck('B')">◉</button>
+                </div>
+
+                <div class="beat-indicators" id="beatsB">
+                    <div class="beat"></div>
+                    <div class="beat"></div>
+                    <div class="beat"></div>
+                    <div class="beat"></div>
+                </div>
+
+                <div class="sliders">
+                    <div class="slider-group">
+                        <span class="slider-label">GAIN</span>
+                        <div class="slider-container">
+                            <input type="range" id="gainB" min="0" max="150" value="100" oninput="updateGain('B')">
+                        </div>
+                        <span class="slider-value" id="gainValueB">100%</span>
+                    </div>
+                    <div class="slider-group">
+                        <span class="slider-label">LOW</span>
+                        <div class="slider-container">
+                            <input type="range" id="lowB" min="0" max="150" value="100" oninput="updateEQ('B', 'low')">
+                        </div>
+                        <span class="slider-value" id="lowValueB">100%</span>
+                    </div>
+                    <div class="slider-group">
+                        <span class="slider-label">MID</span>
+                        <div class="slider-container">
+                            <input type="range" id="midB" min="0" max="150" value="100" oninput="updateEQ('B', 'mid')">
+                        </div>
+                        <span class="slider-value" id="midValueB">100%</span>
+                    </div>
+                    <div class="slider-group">
+                        <span class="slider-label">HIGH</span>
+                        <div class="slider-container">
+                            <input type="range" id="highB" min="0" max="150" value="100" oninput="updateEQ('B', 'high')">
+                        </div>
+                        <span class="slider-value" id="highValueB">100%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Playlist -->
+        <div class="playlist-section">
+            <h3>📋 Playlist</h3>
+            <div class="playlist" id="playlist">
+                <p style="color: var(--muted); text-align: center; padding: 20px;">
+                    Load audio files to get started
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading" id="loading">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p>Loading track...</p>
+        </div>
+    </div>
+
+    <script>
+        // DJ Mixer State
+        const state = {
+            deckA: {
+                audio: null,
+                source: null,
+                gainNode: null,
+                lowFilter: null,
+                midFilter: null,
+                highFilter: null,
+                isPlaying: false,
+                isCued: false,
+                track: null,
+                volume: 1,
+                eq: { low: 1, mid: 1, high: 1 }
+            },
+            deckB: {
+                audio: null,
+                source: null,
+                gainNode: null,
+                lowFilter: null,
+                midFilter: null,
+                highFilter: null,
+                isPlaying: false,
+                isCued: false,
+                track: null,
+                volume: 1,
+                eq: { low: 1, mid: 1, high: 1 }
+            },
+            crossfade: 0.5, // 0 = A, 1 = B
+            master: 1,
+            playlist: [],
+            currentDeck: 'A',
+            crossfadeDuration: 8000 // 8 seconds
+        };
+
+        // Audio Context
+        let audioCtx;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // Load track to deck
+        async function loadTrack(deck, file) {
+            initAudio();
+            
+            const deckState = state[`deck${deck}`];
+            
+            // Stop current track
+            if (deckState.audio) {
+                deckState.audio.pause();
+                deckState.audio = null;
+            }
+
+            showLoading(true);
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+                deckState.audioBuffer = audioBuffer;
+                deckState.track = file.name;
+                deckState.isPlaying = false;
+                deckState.isCued = false;
+
+                // Update UI
+                document.getElementById(`title${deck}`).textContent = file.name;
+                updateTimeDisplay(deck, 0, audioBuffer.duration);
+                updateStatus(deck, 'LOADED');
+
+                // Add to playlist if not already
+                if (!state.playlist.find(p => p.name === file.name)) {
+                    state.playlist.push({
+                        name: file.name,
+                        file: file,
+                        duration: audioBuffer.duration
+                    });
+                    renderPlaylist();
+                }
+
+                showLoading(false);
+            } catch (error) {
+                console.error('Error loading track:', error);
+                showLoading(false);
+                alert('Error loading track: ' + error.message);
+            }
+        }
+
+        // Play deck
+        function playDeck(deck) {
+            initAudio();
+            const deckState = state[`deck${deck}`];
+
+            if (!deckState.audioBuffer) {
+                alert('No track loaded!');
+                return;
+            }
+
+            if (deckState.isPlaying) {
+                // Pause
+                if (deckState.audio) {
+                    deckState.audio.pause();
+                }
+                deckState.isPlaying = false;
+                updateStatus(deck, 'PAUSED');
+                return;
+            }
+
+            // Create audio source
+            if (deckState.audio) {
+                deckState.audio.pause();
+            }
+
+            deckState.audio = audioCtx.createBufferSource();
+            deckState.audio.buffer = deckState.audioBuffer;
+
+            // Create gain node for volume
+            if (!deckState.gainNode) {
+                deckState.gainNode = audioCtx.createGain();
+                deckState.gainNode.connect(audioCtx.destination);
+            }
+
+            // Create EQ filters
+            if (!deckState.lowFilter) {
+                deckState.lowFilter = audioCtx.createBiquadFilter();
+                deckState.lowFilter.type = 'lowshelf';
+                deckState.lowFilter.frequency.value = 320;
+                deckState.lowFilter.gain.value = 0;
+
+                deckState.midFilter = audioCtx.createBiquadFilter();
+                deckState.midFilter.type = 'peaking';
+                deckState.midFilter.frequency.value = 1000;
+                deckState.midFilter.gain.value = 0;
+
+                deckState.highFilter = audioCtx.createBiquadFilter();
+                deckState.highFilter.type = 'highshelf';
+                deckState.highFilter.frequency.value = 3200;
+                deckState.highFilter.gain.value = 0;
+            }
+
+            // Connect: source -> EQ -> gain -> destination
+            deckState.audio.connect(deckState.lowFilter);
+            deckState.lowFilter.connect(deckState.midFilter);
+            deckState.midFilter.connect(deckState.highFilter);
+            deckState.highFilter.connect(deckState.gainNode);
+
+            // Apply crossfade volume
+            updateCrossfadeVolume(deck);
+
+            // Apply EQ
+            deckState.lowFilter.gain.value = (deckState.eq.low - 1) * 12;
+            deckState.midFilter.gain.value = (deckState.eq.mid - 1) * 12;
+            deckState.highFilter.gain.value = (deckState.eq.high - 1) * 12;
+
+            // Start playback
+            const startTime = audioCtx.currentTime;
+            deckState.audio.start(startTime);
+            deckState.isPlaying = true;
+            deckState.startTime = startTime;
+
+            updateStatus(deck, 'PLAYING');
+            state.currentDeck = deck;
+
+            // Update progress
+            deckState.progressInterval = setInterval(() => {
+                if (deckState.audio) {
+                    const elapsed = audioCtx.currentTime - deckState.startTime;
+                    const duration = deckState.audioBuffer.duration;
+                    const progress = (elapsed / duration) * 100;
+
+                    document.getElementById(`progress${deck}`).style.width = progress + '%';
+                    updateTimeDisplay(deck, elapsed, duration);
+
+                    // Check for end of track
+                    if (elapsed >= duration) {
+                        onTrackEnd(deck);
+                    }
+
+                    // Auto crossfade near end
+                    if (duration - elapsed < state.crossfadeDuration / 1000 && 
+                        state[`deck${deck === 'A' ? 'B' : 'A'}`].audioBuffer) {
+                        // Trigger crossfade
+                        triggerAutoCrossfade(deck);
+                    }
+                }
+            }, 50);
+        }
+
+        // Trigger automatic crossfade
+        let crossfadeTimeout = null;
+        function triggerAutoCrossfade(currentDeck) {
+            if (crossfadeTimeout) return;
+            
+            const otherDeck = currentDeck === 'A' ? 'B' : 'A';
+            const otherDeckState = state[`deck${otherDeck}`];
+            
+            if (!otherDeckState.audioBuffer) return;
+            
+            crossfadeTimeout = setTimeout(() => {
+                // Start the other deck
+                if (!otherDeckState.isPlaying) {
+                    playDeck(otherDeck);
+                }
+                
+                // Animate crossfader
+                const targetPos = otherDeck === 'B' ? 100 : 0;
+                animateCrossfade(targetPos);
+                
+                crossfadeTimeout = null;
+            }, state.crossfadeDuration);
+        }
+
+        // Cue deck (pause at position)
+        function cueDeck(deck) {
+            const deckState = state[`deck${deck}`];
+            
+            if (deckState.isPlaying) {
+                if (deckState.audio) {
+                    deckState.audio.pause();
+                }
+                deckState.isPlaying = false;
+                updateStatus(deck, 'CUED');
+            }
+        }
+
+        // Update crossfade volume
+        function updateCrossfadeVolume(deck) {
+            const deckState = state[`deck${deck}`];
+            let volume;
+
+            if (deck === 'A') {
+                volume = (1 - state.crossfade) * state.master;
+            } else {
+                volume = state.crossfade * state.master;
+            }
+
+            if (deckState.gainNode) {
+                // Smooth volume transition to avoid clicks
+                deckState.gainNode.gain.setTargetAtTime(volume, audioCtx.currentTime, 0.1);
+            }
+        }
+
+        // Animate crossfader
+        function animateCrossfade(targetPercent) {
+            const crossfader = document.getElementById('crossfader');
+            const startPercent = state.crossfade * 100;
+            const duration = state.crossfadeDuration;
+            const startTime = performance.now();
+
+            function animate(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Smooth easing
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const current = startPercent + (targetPercent - startPercent) * eased;
+
+                state.crossfade = current / 100;
+                crossfader.style.top = current + '%';
+                updateCrossfadeValue();
+
+                // Update volumes for both decks
+                updateCrossfadeVolume('A');
+                updateCrossfadeVolume('B');
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Manual crossfade
+        function updateCrossfade() {
+            const crossfader = document.getElementById('crossfader');
+            const container = crossfader.parentElement;
+            const rect = container.getBoundingClientRect();
+            
+            let percent = (event.clientY - rect.top) / rect.height * 100;
+            percent = Math.max(0, Math.min(100, percent));
+            
+            state.crossfade = 1 - (percent / 100);
+            crossfader.style.top = percent + '%';
+            
+            updateCrossfadeValue();
+            updateCrossfadeVolume('A');
+            updateCrossfadeVolume('B');
+        }
+
+        function updateCrossfadeValue() {
+            const value = document.getElementById('crossfadeValue');
+            const aVol = Math.round((1 - state.crossfade) * 100);
+            const bVol = Math.round(state.crossfade * 100);
+            
+            if (state.crossfade < 0.3) {
+                value.textContent = `A ▓▓▓ ${aVol}%`;
+            } else if (state.crossfade > 0.7) {
+                value.textContent = `${bVol}% ▓▓▓ B`;
+            } else {
+                value.textContent = `A ${aVol}% ◁▷ ${bVol}% B`;
+            }
+        }
+
+        // Track end handler
+        function onTrackEnd(deck) {
+            const otherDeck = deck === 'A' ? 'B' : 'A';
+            const deckState = state[`deck${deck}`];
+            const otherDeckState = state[`deck${otherDeck}`];
+
+            if (otherDeckState.audioBuffer && otherDeckState.isPlaying) {
+                // Switch to other deck
+                deckState.isPlaying = false;
+                updateStatus(deck, 'READY');
+            } else {
+                // Both stopped
+                deckState.isPlaying = false;
+                updateStatus(deck, 'ENDED');
+            }
+        }
+
+        // Update gain
+        function updateGain(deck) {
+            const value = document.getElementById(`gain${deck}`).value;
+            document.getElementById(`gainValue${deck}`).textContent = value + '%';
+            
+            const deckState = state[`deck${deck}`];
+            deckState.eq.gain = value / 100;
+            
+            updateCrossfadeVolume(deck);
+        }
+
+        // Update EQ
+        function updateEQ(deck, band) {
+            const value = document.getElementById(`${band}${deck}`).value;
+            document.getElementById(`${band}Value${deck}`).textContent = value + '%';
+            
+            const deckState = state[`deck${deck}`];
+            deckState.eq[band] = value / 100;
+            
+            // Apply to filter
+            if (deckState[`${band}Filter`]) {
+                deckState[`${band}Filter`].gain.setTargetAtTime(
+                    (value / 100 - 1) * 12, 
+                    audioCtx.currentTime, 
+                    0.01
+                );
+            }
+        }
+
+        // Update master volume
+        function updateMaster() {
+            const value = document.getElementById('master').value;
+            state.master = value / 100;
+            
+            updateCrossfadeVolume('A');
+            updateCrossfadeVolume('B');
+        }
+
+        // Update time display
+        function updateTimeDisplay(deck, current, total) {
+            const formatTime = (seconds) => {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            };
+            
+            document.getElementById(`time${deck}`).textContent = 
+                `${formatTime(current)} / ${formatTime(total)}`;
+        }
+
+        // Update status
+        function updateStatus(deck, status) {
+            const statusEl = document.getElementById(`status${deck}`);
+            statusEl.textContent = status;
+            statusEl.classList.toggle('playing', status === 'PLAYING');
+        }
+
+        // Show/hide loading
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('show', show);
+        }
+
+        // Render playlist
+        function renderPlaylist() {
+            const playlist = document.getElementById('playlist');
+            
+            if (state.playlist.length === 0) {
+                playlist.innerHTML = '<p style="color: var(--muted); text-align: center; padding: 20px;">Load audio files to get started</p>';
+                return;
+            }
+
+            playlist.innerHTML = state.playlist.map((track, index) => `
+                <div class="playlist-item ${track.name === state.deckA.track || track.name === state.deckB.track ? 'playing' : ''}">
+                    <div class="playlist-item-info">
+                        <div class="playlist-item-title">${track.name}</div>
+                        <div class="playlist-item-duration">${Math.floor(track.duration / 60)}:${Math.floor(track.duration % 60).toString().padStart(2, '0')}</div>
+                    </div>
+                    <button class="playlist-item-add" onclick="loadToDeck('${track.name}')">
+                        Load
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // Load track from playlist to deck
+        function loadToDeck(trackName) {
+            const track = state.playlist.find(t => t.name === trackName);
+            if (!track) return;
+
+            // Load to next available deck
+            if (!state.deckA.track) {
+                loadTrack('A', track.file);
+            } else if (!state.deckB.track) {
+                loadTrack('B', track.file);
+            } else {
+                // Replace current deck
+                loadTrack(state.currentDeck, track.file);
+            }
+        }
+
+        // File input handlers
+        document.getElementById('fileA').addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                loadTrack('A', e.target.files[0]);
+            }
+        });
+
+        document.getElementById('fileB').addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                loadTrack('B', e.target.files[0]);
+            }
+        });
+
+        // Crossfader drag
+        const crossfaderEl = document.getElementById('crossfader');
+        let isDragging = false;
+
+        crossfaderEl.addEventListener('mousedown', () => isDragging = true);
+        document.addEventListener('mouseup', () => isDragging = false);
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const container = crossfaderEl.parentElement;
+                const rect = container.getBoundingClientRect();
+                let percent = (e.clientY - rect.top) / rect.height * 100;
+                percent = Math.max(0, Math.min(100, percent));
+                
+                state.crossfade = 1 - (percent / 100);
+                crossfaderEl.style.top = percent + '%';
+                updateCrossfadeValue();
+                updateCrossfadeVolume('A');
+                updateCrossfadeVolume('B');
+            }
+        });
+
+        // Touch support
+        crossfaderEl.addEventListener('touchstart', () => isDragging = true);
+        document.addEventListener('touchend', () => isDragging = false);
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging && e.touches[0]) {
+                const container = crossfaderEl.parentElement;
+                const rect = container.getBoundingClientRect();
+                let percent = (e.touches[0].clientY - rect.top) / rect.height * 100;
+                percent = Math.max(0, Math.min(100, percent));
+                
+                state.crossfade = 1 - (percent / 100);
+                crossfaderEl.style.top = percent + '%';
+                updateCrossfadeValue();
+                updateCrossfadeVolume('A');
+                updateCrossfadeVolume('B');
+            }
+        });
+
+        // Generate visualizer bars
+        const visualizer = document.getElementById('visualizer');
+        for (let i = 0; i < 30; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'bar';
+            bar.style.animationDelay = (i * 0.1) + 's';
+            visualizer.appendChild(bar);
+        }
+
+        // Initialize
+        updateCrossfadeValue();
+    </script>
+</body>
+</html>
