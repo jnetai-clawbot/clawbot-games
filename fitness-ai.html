@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Fitness Coach</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary: #ff6b35; --secondary: #004e89; --accent: #00f5d4; --bg: #0a0a0a; --card: #1a1a1a; --text: #fff; --muted: #888; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; }
+        
+        .header { text-align: center; margin-bottom: 30px; }
+        .header h1 { font-size: 2.5em; background: linear-gradient(90deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .header p { color: var(--muted); margin-top: 5px; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 30px; }
+        .stat-card { background: var(--card); border-radius: 15px; padding: 20px; text-align: center; border: 1px solid #333; }
+        .stat-card .icon { font-size: 2em; margin-bottom: 10px; }
+        .stat-card .value { font-size: 1.8em; font-weight: bold; color: var(--accent); }
+        .stat-card .label { color: var(--muted); font-size: 0.85em; margin-top: 5px; }
+        
+        .workout-section { background: var(--card); border-radius: 15px; padding: 25px; margin-bottom: 20px; }
+        .section-title { font-size: 1.3em; margin-bottom: 15px; color: var(--primary); }
+        
+        .exercise-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+        .exercise-card { background: #252525; border-radius: 10px; padding: 15px; cursor: pointer; transition: all 0.3s; border: 2px solid transparent; }
+        .exercise-card:hover { border-color: var(--primary); transform: translateY(-3px); }
+        .exercise-card.active { border-color: var(--accent); background: #1a3a2a; }
+        .exercise-card .emoji { font-size: 2em; display: block; text-align: center; margin-bottom: 8px; }
+        .exercise-card .name { font-weight: bold; font-size: 0.9em; }
+        .exercise-card .calories { color: var(--primary); font-size: 0.8em; }
+        
+        .timer-display { text-align: center; padding: 40px; background: #111; border-radius: 20px; margin: 20px 0; }
+        .timer-display .time { font-size: 4em; font-weight: bold; font-family: monospace; color: var(--accent); }
+        .timer-display .status { color: var(--muted); margin-top: 10px; }
+        
+        .timer-controls { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
+        .btn { padding: 12px 30px; font-size: 1em; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; transition: all 0.3s; }
+        .btn-primary { background: var(--primary); color: #fff; }
+        .btn-primary:hover { background: #ff8555; transform: scale(1.05); }
+        .btn-secondary { background: var(--secondary); color: #fff; }
+        .btn-accent { background: var(--accent); color: #000; }
+        
+        .sets-reps { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
+        .set-input { width: 70px; padding: 10px; text-align: center; font-size: 1.2em; border: 2px solid #333; border-radius: 10px; background: #111; color: #fff; }
+        .set-input:focus { border-color: var(--accent); outline: none; }
+        
+        .progress-section { margin-top: 20px; }
+        .progress-bar { height: 8px; background: #333; border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); transition: width 0.5s; }
+        
+        .ai-coach { background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 15px; padding: 20px; margin-top: 20px; border-left: 4px solid var(--accent); }
+        .ai-coach .avatar { font-size: 2em; display: inline-block; margin-right: 10px; }
+        .ai-coach .message { display: inline; font-style: italic; color: #ccc; }
+        
+        .achievements { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+        .achievement { padding: 8px 15px; background: #252525; border-radius: 20px; font-size: 0.85em; opacity: 0.5; }
+        .achievement.unlocked { opacity: 1; background: linear-gradient(90deg, var(--primary), #ff8866); color: #000; }
+        
+        .daily-goals { margin-top: 20px; }
+        .goal { display: flex; align-items: center; gap: 15px; margin-bottom: 12px; padding: 12px; background: #222; border-radius: 10px; }
+        .goal-icon { font-size: 1.5em; }
+        .goal-info { flex: 1; }
+        .goal-name { font-weight: bold; }
+        .goal-progress { color: var(--muted); font-size: 0.85em; }
+        
+        @media (max-width: 600px) { .header h1 { font-size: 1.8em; } .timer-display .time { font-size: 3em; } }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏋️ AI Fitness Coach</h1>
+        <p>Your personal AI-powered workout companion</p>
+    </div>
+    
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="icon">🔥</div>
+            <div class="value" id="calories">0</div>
+            <div class="label">Calories Burned</div>
+        </div>
+        <div class="stat-card">
+            <div class="icon">⏱️</div>
+            <div class="value" id="duration">0</div>
+            <div class="label">Minutes</div>
+        </div>
+        <div class="stat-card">
+            <div class="icon">💪</div>
+            <div class="value" id="exercises">0</div>
+            <div class="label">Exercises</div>
+        </div>
+        <div class="stat-card">
+            <div class="icon">⭐</div>
+            <div class="value" id="streak">0</div>
+            <div class="label">Day Streak</div>
+        </div>
+    </div>
+    
+    <div class="workout-section">
+        <div class="section-title">🎯 Select Exercises</div>
+        <div class="exercise-grid" id="exerciseGrid"></div>
+    </div>
+    
+    <div class="workout-section">
+        <div class="section-title">⏱️ Workout Timer</div>
+        <div class="timer-display">
+            <div class="time" id="timer">00:00</div>
+            <div class="status" id="timerStatus">Ready to start</div>
+            <div class="timer-controls">
+                <button class="btn btn-primary" onclick="startTimer()">▶ Start</button>
+                <button class="btn btn-secondary" onclick="pauseTimer()">⏸ Pause</button>
+                <button class="btn btn-accent" onclick="resetTimer()">↺ Reset</button>
+            </div>
+            <div class="sets-reps">
+                <input type="number" class="set-input" id="sets" placeholder="Sets" value="3">
+                <input type="number" class="set-input" id="reps" placeholder="Reps" value="12">
+            </div>
+        </div>
+    </div>
+    
+    <div class="workout-section">
+        <div class="section-title">🎯 Daily Goals</div>
+        <div class="daily-goals" id="dailyGoals"></div>
+    </div>
+    
+    <div class="ai-coach">
+        <span class="avatar">🤖</span>
+        <span class="message" id="coachMessage">Welcome! Select exercises and start your workout. I'm here to help you reach your goals!</span>
+    </div>
+    
+    <div class="workout-section">
+        <div class="section-title">🏆 Achievements</div>
+        <div class="achievements" id="achievements"></div>
+    </div>
+
+    <script>
+        const exercises = [
+            { name: 'Push-ups', emoji: '💪', calories: 7, muscle: 'Chest, Triceps' },
+            { name: 'Squats', emoji: '🦵', calories: 8, muscle: 'Legs, Glutes' },
+            { name: 'Planks', emoji: '🧘', calories: 5, muscle: 'Core' },
+            { name: 'Lunges', emoji: '🚶', calories: 6, muscle: 'Legs' },
+            { name: 'Burpees', emoji: '🔥', calories: 10, muscle: 'Full Body' },
+            { name: 'Jumping Jacks', emoji: '⭐', calories: 8, muscle: 'Full Body' },
+            { name: 'Mountain Climbers', emoji: '⛰️', calories: 9, muscle: 'Core, Cardio' },
+            { name: 'Box Jumps', emoji: '📦', calories: 8, muscle: 'Legs, Power' },
+            { name: 'Kettlebell Swings', emoji: '🔔', calories: 12, muscle: 'Full Body' },
+            { name: 'Battle Ropes', emoji: '🪢', calories: 15, muscle: 'Arms, Core' },
+            { name: 'TRX Rows', emoji: '🪝', calories: 6, muscle: 'Back, Biceps' },
+            { name: 'Medicine Ball Slams', emoji: '🏐', calories: 11, muscle: 'Core, Power' }
+        ];
+        
+        const achievements = [
+            { id: 'first', name: '🏃 First Step', desc: 'Complete first exercise' },
+            { id: 'burn100', name: '🔥 Fire Starter', desc: 'Burn 100 calories' },
+            { id: 'burn500', name: '🔥🔥 Inferno', desc: 'Burn 500 calories' },
+            { id: 'streak3', name: '⚡ On Fire', desc: '3 day streak' },
+            { id: 'streak7', name: '💪 Unstoppable', desc: '7 day streak' },
+            { id: 'fullbody', name: '🎯 Full Body', desc: 'Complete all exercise types' },
+            { id: 'marathon', name: '🏃‍♂️ Marathon', desc: 'Workout for 60 minutes' },
+            { id: 'champion', name: '🏆 Champion', desc: 'Unlock all achievements' }
+        ];
+        
+        const dailyGoals = [
+            { id: 'calories', icon: '🔥', name: 'Burn 300 Calories', target: 300 },
+            { id: 'time', icon: '⏱️', name: '30 Min Workout', target: 30 },
+            { id: 'exercises', icon: '💪', name: '5 Different Exercises', target: 5 }
+        ];
+        
+        let state = {
+            calories: 0,
+            duration: 0,
+            exercises: 0,
+            streak: 0,
+            selectedExercises: [],
+            timerRunning: false,
+            timerSeconds: 0,
+            timerInterval: null,
+            unlockedAchievements: []
+        };
+        
+        // Load state from localStorage
+        function loadState() {
+            const saved = localStorage.getItem('fitnessState');
+            if (saved) {
+                state = JSON.parse(saved);
+                updateStats();
+            }
+            
+            // Check for daily reset
+            const lastDate = localStorage.getItem('fitnessDate');
+            const today = new Date().toDateString();
+            if (lastDate !== today) {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                if (lastDate === yesterday.toDateString()) {
+                    state.streak++;
+                } else {
+                    state.streak = 0;
+                }
+                state.calories = 0;
+                state.duration = 0;
+                state.exercises = 0;
+                localStorage.setItem('fitnessDate', today);
+                saveState();
+            }
+        }
+        
+        function saveState() {
+            localStorage.setItem('fitnessState', JSON.stringify(state));
+        }
+        
+        // Render exercises
+        function renderExercises() {
+            const grid = document.getElementById('exerciseGrid');
+            grid.innerHTML = exercises.map((ex, i) => `
+                <div class="exercise-card" onclick="toggleExercise(${i})" data-index="${i}">
+                    <span class="emoji">${ex.emoji}</span>
+                    <div class="name">${ex.name}</div>
+                    <div class="calories">${ex.calories} cal/min</div>
+                </div>
+            `).join('');
+        }
+        
+        function toggleExercise(index) {
+            const card = document.querySelector(`[data-index="${index}"]`);
+            const exercise = exercises[index];
+            
+            if (card.classList.contains('active')) {
+                card.classList.remove('active');
+                state.selectedExercises = state.selectedExercises.filter(e => e.name !== exercise.name);
+            } else {
+                card.classList.add('active');
+                state.selectedExercises.push(exercise);
+                completeExercise(exercise);
+            }
+            
+            updateCoach();
+        }
+        
+        function completeExercise(exercise) {
+            const sets = parseInt(document.getElementById('sets').value) || 3;
+            const reps = parseInt(document.getElementById('reps').value) || 12;
+            const duration = Math.round((sets * reps) / 8); // Estimate minutes
+            const burned = Math.round(exercise.calories * duration);
+            
+            state.calories += burned;
+            state.duration += duration;
+            state.exercises++;
+            
+            updateStats();
+            checkAchievements();
+            saveState();
+            
+            const messages = [
+                `Great job! You burned ${burned} calories with ${exercise.name}!`,
+                `Awesome! ${exercise.name} targets your ${exercise.muscle}. Keep it up!`,
+                `That's ${burned} calories down! You're getting stronger!`,
+                `Perfect form on ${exercise.name}! Keep pushing!`
+            ];
+            document.getElementById('coachMessage').textContent = messages[Math.floor(Math.random() * messages.length)];
+        }
+        
+        function updateStats() {
+            document.getElementById('calories').textContent = state.calories;
+            document.getElementById('duration').textContent = state.duration;
+            document.getElementById('exercises').textContent = state.exercises;
+            document.getElementById('streak').textContent = state.streak;
+            updateDailyGoals();
+            renderAchievements();
+        }
+        
+        function updateDailyGoals() {
+            const goalsHTML = dailyGoals.map(goal => {
+                let current = 0;
+                if (goal.id === 'calories') current = state.calories;
+                if (goal.id === 'time') current = state.duration;
+                if (goal.id === 'exercises') current = Math.min(state.selectedExercises.length, goal.target);
+                
+                const percent = Math.min(100, (current / goal.target) * 100);
+                
+                return `
+                    <div class="goal">
+                        <span class="goal-icon">${goal.icon}</span>
+                        <div class="goal-info">
+                            <div class="goal-name">${goal.name}</div>
+                            <div class="goal-progress">${current} / ${goal.target} (${Math.round(percent)}%)</div>
+                            <div class="progress-bar"><div class="progress-fill" style="width: ${percent}%"></div></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('dailyGoals').innerHTML = goalsHTML;
+        }
+        
+        function renderAchievements() {
+            const achHTML = achievements.map(a => {
+                const unlocked = state.unlockedAchievements.includes(a.id);
+                return `<span class="achievement ${unlocked ? 'unlocked' : ''}" title="${a.desc}">${a.name}</span>`;
+            }).join('');
+            document.getElementById('achievements').innerHTML = achHTML;
+        }
+        
+        function checkAchievements() {
+            const newUnlocked = [];
+            
+            if (state.exercises >= 1 && !state.unlockedAchievements.includes('first')) {
+                newUnlocked.push('first');
+            }
+            if (state.calories >= 100 && !state.unlockedAchievements.includes('burn100')) {
+                newUnlocked.push('burn100');
+            }
+            if (state.calories >= 500 && !state.unlockedAchievements.includes('burn500')) {
+                newUnlocked.push('burn500');
+            }
+            if (state.streak >= 3 && !state.unlockedAchievements.includes('streak3')) {
+                newUnlocked.push('streak3');
+            }
+            if (state.streak >= 7 && !state.unlockedAchievements.includes('streak7')) {
+                newUnlocked.push('streak7');
+            }
+            if (state.duration >= 60 && !state.unlockedAchievements.includes('marathon')) {
+                newUnlocked.push('marathon');
+            }
+            if (state.selectedExercises.length >= 12 && !state.unlockedAchievements.includes('fullbody')) {
+                newUnlocked.push('fullbody');
+            }
+            if (newUnlocked.length >= 8 && !state.unlockedAchievements.includes('champion')) {
+                newUnlocked.push('champion');
+            }
+            
+            if (newUnlocked.length > 0) {
+                state.unlockedAchievements = [...state.unlockedAchievements, ...newUnlocked];
+                saveState();
+                document.getElementById('coachMessage').textContent = `🎉 Achievement${newUnlocked.length > 1 ? 's' : ''} unlocked: ${newUnlocked.map(a => achievements.find(ach => ach.id === a).name).join(', ')}!`;
+            }
+        }
+        
+        function updateCoach() {
+            if (state.selectedExercises.length === 0) {
+                document.getElementById('coachMessage').textContent = "Select exercises to begin your workout!";
+            } else if (state.selectedExercises.length < 3) {
+                document.getElementById('coachMessage').textContent = "Good start! Try adding a few more exercises for a complete workout.";
+            } else if (state.selectedExercises.length < 6) {
+                document.getElementById('coachMessage').textContent = "Nice routine! You've got a solid workout planned.";
+            } else {
+                document.getElementById('coachMessage').textContent = "Amazing! That's a comprehensive full-body workout! Let's crush it! 💪";
+            }
+        }
+        
+        // Timer functions
+        function startTimer() {
+            if (state.timerRunning) return;
+            state.timerRunning = true;
+            state.timerInterval = setInterval(() => {
+                state.timerSeconds++;
+                updateTimerDisplay();
+                
+                // Update duration every minute
+                if (state.timerSeconds % 60 === 0) {
+                    state.duration++;
+                    updateStats();
+                    saveState();
+                }
+            }, 1000);
+            document.getElementById('timerStatus').textContent = 'Workout in progress...';
+        }
+        
+        function pauseTimer() {
+            state.timerRunning = false;
+            clearInterval(state.timerInterval);
+            document.getElementById('timerStatus').textContent = 'Paused';
+        }
+        
+        function resetTimer() {
+            pauseTimer();
+            state.timerSeconds = 0;
+            updateTimerDisplay();
+            document.getElementById('timerStatus').textContent = 'Ready to start';
+        }
+        
+        function updateTimerDisplay() {
+            const mins = Math.floor(state.timerSeconds / 60).toString().padStart(2, '0');
+            const secs = (state.timerSeconds % 60).toString().padStart(2, '0');
+            document.getElementById('timer').textContent = `${mins}:${secs}`;
+        }
+        
+        // Initialize
+        loadState();
+        renderExercises();
+        updateDailyGoals();
+        renderAchievements();
+    </script>
+</body>
+</html>
