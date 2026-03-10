@@ -1,0 +1,100 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install buildozer cython
+    
+    - name: Install Android SDK
+      run: |
+        mkdir -p $ANDROID_HOME/cmdline-tools
+        cd $ANDROID_HOME/cmdline-tools
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
+        unzip -q cmdline-tools.zip
+        mv cmdline-tools latest
+        rm cmdline-tools.zip
+    
+    - name: Accept licenses
+      run: |
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
+    
+    - name: Install Android packages
+      run: |
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-31" "build-tools;31.0.0"
+    
+    - name: Build Neon Void
+      working-directory: ./android/neon-void
+      run: |
+        buildozer init --non-interactive 2>/dev/null || true
+        buildozer android debug --verbose
+      env:
+        ANDROID_HOME: ${{ env.ANDROID_HOME }}
+        BUILDOZER_ANDROID_API: 31
+        BUILDOZER_ANDROID_MIN_API: 21
+    
+    - name: Build Quantum Assault
+      working-directory: ./android/quantum-assault
+      run: |
+        buildozer init --non-interactive 2>/dev/null || true
+        buildozer android debug --verbose
+      env:
+        ANDROID_HOME: ${{ env.ANDROID_HOME }}
+        BUILDOZER_ANDROID_API: 31
+        BUILDOZER_ANDROID_MIN_API: 21
+    
+    - name: Build Neon Snake
+      working-directory: ./android/neon-snake
+      run: |
+        buildozer init --non-interactive 2>/dev/null || true
+        buildozer android debug --verbose
+      env:
+        ANDROID_HOME: ${{ env.ANDROID_HOME }}
+        BUILDOZER_ANDROID_API: 31
+        BUILDOZER_ANDROID_MIN_API: 21
+    
+    - name: Build Color Fall
+      working-directory: ./android/color-fall
+      run: |
+        buildozer init --non-interactive 2>/dev/null || true
+        buildozer android debug --verbose
+      env:
+        ANDROID_HOME: ${{ env.ANDROID_HOME }}
+        BUILDOZER_ANDROID_API: 31
+        BUILDOZER_ANDROID_MIN_API: 21
+    
+    - name: Upload APKs
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-apks
+        path: |
+          android/*/bin/*.apk
+        retention-days: 30
+    
+    - name: Create Release
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/main')
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: apks-${{ github.sha }}
+        files: |
+          android/*/bin/*.apk
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

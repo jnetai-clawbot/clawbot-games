@@ -1,91 +1,56 @@
 # 🤖 ClawBot Android Games
 
-A collection of Android games built with Python/Kivy, ready to compile to APK!
+A collection of Android games built with Python/Kivy - automatically builds to APK via GitHub Actions!
 
 ## 📱 Games Included
 
-### 🎮 Neon Void
-- **Genre:** 3D Maze Runner
-- **Description:** First-person maze exploration game with procedurally generated mazes
-- **Features:**
-  - Procedural maze generation
-  - Collect glowing orbs
-  - Avoid enemies
-  - Multiple levels
-  - Combo scoring system
+| Game | Genre | Description |
+|------|-------|-------------|
+| **Neon Void** | 3D Maze | First-person maze runner with procedural mazes |
+| **Quantum Assault** | Space Shooter | Retro shooter with waves & powerups |
+| **Neon Snake** | Arcade | Classic snake game with high scores |
+| **Color Fall** | Puzzle | Match-3 color puzzle game |
 
-### 🚀 Quantum Assault  
-- **Genre:** Space Shooter
-- **Description:** Retro-style space shooter with waves and powerups
-- **Features:**
-  - 3 enemy types (basic, fast, tank)
-  - Shield & double-shot powerups
-  - Progressive difficulty waves
-  - Starfield background
+## 📦 Download APKs
 
-### 🐍 Neon Snake
-- **Genre:** Classic Arcade
-- **Description:** Modern twist on classic snake game
-- **Features:**
-  - Smooth movement
-  - Score & high score tracking
-  - Progressive speed increase
+**Latest APKs (automatically built):**
+- [Neon Void APK](https://github.com/jnetai-clawbot/clawbot-games/releases)
+- [Quantum Assault APK](https://github.com/jnetai-clawbot/clawbot-games/releases)
+- [Neon Snake APK](https://github.com/jnetai-clawbot/clawbot-games/releases)
+- [Color Fall APK](https://github.com/jnetai-clawbot/clawbot-games/releases)
 
-### 🎨 Color Fall
-- **Genre:** Puzzle
-- **Description:** Color-matching puzzle game
-- **Features:**
-  - Match 3+ colored blocks
-  - Chain reactions
-  - Progressive difficulty
+## 🔄 Automatic Builds
 
-## 🛠️ Building APKs
+APKs are automatically built when you push to the `android` folder!
 
-### Prerequisites
+1. Push changes to `android/` folder
+2. GitHub Actions builds all 4 games
+3. Downloads available in Actions artifacts
+4. Release created automatically with all APKs
+
+## 🛠️ Build Manually
+
 ```bash
-# Install Python dependencies
-pip install kivy buildozer
+# Install buildozer
+pip install buildozer cython
 
-# For Android SDK, see: https://kivy.org/doc/stable/guide/android.html
-```
-
-### Build Steps
-```bash
-# Navigate to game folder
-cd neon-void  # or any other game
-
-# Initialize buildozer (first time only)
-buildozer init
-
-# Build debug APK
+# Build a specific game
+cd android/neon-void
 buildozer android debug
 
-# Build release APK
-buildozer android release
+# APK location: bin/*.apk
 ```
 
-The APK will be in `bin/` folder.
+## 🎮 Buildozer Config
 
-## 🎯 Project Structure
-```
-clawbot-android/
-├── neon-void/
-│   ├── game.json       # Game metadata
-│   └── main.py         # Game source
-├── quantum-assault/
-│   ├── game.json
-│   └── main.py
-├── neon-snake/
-│   ├── game.json
-│   └── main.py
-└── color-fall/
-    ├── game.json
-    └── main.py
-```
+Each game folder contains:
+- `main.py` - Game source code
+- `buildozer.spec` - Build configuration
+- `game.json` - Game metadata
 
 ## 🌐 Web Versions
 
-These games also have HTML5 versions at:
+HTML5 versions available at:
 - [github.com/jnetai-clawbot/clawbot-games](https://github.com/jnetai-clawbot/clawbot-games)
 
 ## 🤖 Built with Kivy
