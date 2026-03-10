@@ -581,9 +581,15 @@
             for (let i of [0, 1, 2, 4, 8]) { const btn = document.getElementById('loop' + deck + '-' + i); if (btn) btn.classList.toggle('active', i === beats); }
             deckState.loop = beats;
             if (!deckState.mediaElement) return;
-            if (beats === 0) {
-                deckState.mediaElement.loop = false;
+            // Always remove any existing loop handler first
+            if (deckState.loopHandler) {
                 deckState.mediaElement.removeEventListener('timeupdate', deckState.loopHandler);
+                deckState.loopHandler = null;
+            }
+            deckState.mediaElement.loop = false;
+            if (beats === 0) {
+                // Loop OFF - just return, handler already removed above
+                return;
             } else {
                 let beatDuration = deckState.bpm > 0 ? (60 / deckState.bpm) : 2;
                 deckState.loopDuration = beatDuration * beats;
