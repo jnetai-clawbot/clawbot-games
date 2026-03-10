@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEON BEAT</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #000; 
+            overflow: hidden; 
+            font-family: 'Orbitron', monospace;
+        }
+        #gameCanvas { display: block; }
+        #ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 48px;
+            color: #fff;
+            text-shadow: 0 0 20px #fff;
+        }
+        #combo {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 28px;
+            color: #ff0;
+            text-shadow: 0 0 15px #ff0;
+        }
+        #accuracy {
+            position: absolute;
+            top: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 18px;
+            color: #0f0;
+        }
+        #laneScores {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 30px;
+        }
+        .lane-score {
+            width: 60px;
+            text-align: center;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .lane-score.perfect { background: rgba(0,255,255,0.3); border: 2px solid #0ff; color: #0ff; }
+        .lane-score.good { background: rgba(0,255,0,0.3); border: 2px solid #0f0; color: #0f0; }
+        .lane-score.miss { background: rgba(255,0,0,0.3); border: 2px solid #f00; color: #f00; }
+        
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, #111 0%, #000 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: all;
+        }
+        h1 {
+            font-size: 72px;
+            background: linear-gradient(90deg, #0ff, #f0f, #ff0, #0ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 300% 100%;
+            animation: rainbow 3s linear infinite;
+        }
+        @keyframes rainbow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 300% 50%; }
+        }
+        .subtitle {
+            color: #888;
+            margin-top: 10px;
+            font-size: 20px;
+            letter-spacing: 5px;
+        }
+        .btn {
+            padding: 18px 60px;
+            font-size: 24px;
+            background: transparent;
+            border: 3px solid #0ff;
+            color: #0ff;
+            cursor: pointer;
+            margin-top: 40px;
+            font-family: inherit;
+            letter-spacing: 3px;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: #0ff;
+            color: #000;
+            box-shadow: 0 0 40px #0ff;
+        }
+        .instructions {
+            margin-top: 40px;
+            color: #666;
+            text-align: center;
+            line-height: 2;
+        }
+        #hitEffect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 64px;
+            font-weight: bold;
+            opacity: 0;
+            transition: all 0.2s;
+        }
+        #hitEffect.perfect { color: #0ff; text-shadow: 0 0 30px #0ff; }
+        #hitEffect.good { color: #0f0; text-shadow: 0 0 30px #0f0; }
+        #hitEffect.miss { color: #f00; text-shadow: 0 0 30px #f00; }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="ui">
+        <div id="score">0</div>
+        <div id="combo">COMBO: 0</div>
+        <div id="accuracy">PERFECT: 0 | GOOD: 0 | MISS: 0</div>
+        
+        <div id="laneScores">
+            <div class="lane-score perfect" id="lane0">0</div>
+            <div class="lane-score good" id="lane1">0</div>
+            <div class="lane-score perfect" id="lane2">0</div>
+            <div class="lane-score good" id="lane3">0</div>
+        </div>
+        
+        <div id="hitEffect">PERFECT!</div>
+        
+        <div id="startScreen">
+            <h1>NEON BEAT</h1>
+            <p class="subtitle">RHYTHM GAME</p>
+            <button class="btn" onclick="startGame()">PLAY</button>
+            <div class="instructions">
+                🎵 Notes fall to the beat!<br>
+                ⌨️ D F J K - Hit notes in lane<br>
+                🎯 Perfect timing = Maximum points!<br>
+                💫 Build combos for bonus score!
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Game Configuration
+        const CONFIG = {
+            lanes: 4,
+            laneWidth: 2,
+            noteSpeed: 0.3,
+            hitZone: 2,
+            keys: ['d', 'f', 'j', 'k'],
+            colors: [0x00ffff, 0x00ff88, 0xff00ff, 0xffff00]
+        };
+        
+        // Game State
+        let scene, camera, renderer;
+        let lanes = [], notes = [], particles = [];
+        let score = 0, combo = 0;
+        let perfectCount = 0, goodCount = 0, missCount = 0;
+        let gameRunning = false;
+        let lastSpawn = 0;
+        let bpm = 120;
+        let beatInterval;
+        
+        // Lane positions
+        const lanePositions = [-4.5, -1.5, 1.5, 4.5];
+        
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000011);
+            scene.fog = new THREE.FogExp2(0x000011, 0.015);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 8, 20);
+            camera.lookAt(0, 0, -5);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            // Lighting
+            const ambient = new THREE.AmbientLight(0x222244, 0.5);
+            scene.add(ambient);
+            
+            // Create lanes
+            createLanes();
+            
+            // Event listeners
+            document.addEventListener('keydown', handleKeyDown);
+            window.addEventListener('resize', onResize);
+            
+            animate();
+        }
+        
+        function createLanes() {
+            // Lane backgrounds
+            for (let i = 0; i < CONFIG.lanes; i++) {
+                // Lane plane
+                const laneGeo = new THREE.PlaneGeometry(CONFIG.laneWidth, 40);
+                const laneMat = new THREE.MeshStandardMaterial({
+                    color: CONFIG.colors[i],
+                    transparent: true,
+                    opacity: 0.1,
+                    emissive: CONFIG.colors[i],
+                    emissiveIntensity: 0.2
+                });
+                const lane = new THREE.Mesh(laneGeo, laneMat);
+                lane.position.set(lanePositions[i], 0, -15);
+                lane.rotation.x = -Math.PI / 2;
+                scene.add(lane);
+                lanes.push(lane);
+                
+                // Hit zone indicator
+                const ringGeo = new THREE.RingGeometry(0.8, 1, 32);
+                const ringMat = new THREE.MeshBasicMaterial({
+                    color: CONFIG.colors[i],
+                    transparent: true,
+                    opacity: 0.5,
+                    side: THREE.DoubleSide
+                });
+                const ring = new THREE.Mesh(ringGeo, ringMat);
+                ring.position.set(lanePositions[i], 0.1, 3);
+                ring.rotation.x = -Math.PI / 2;
+                scene.add(ring);
+                
+                // Key indicator
+                const keyGeo = new THREE.BoxGeometry(1.5, 0.2, 1);
+                const keyMat = new THREE.MeshStandardMaterial({
+                    color: CONFIG.colors[i],
+                    emissive: CONFIG.colors[i],
+                    emissiveIntensity: 0.5
+                });
+                const key = new THREE.Mesh(keyGeo, keyMat);
+                key.position.set(lanePositions[i], 0.1, 4);
+                key.name = 'key' + i;
+                scene.add(key);
+            }
+            
+            // Center line
+            const line = new THREE.Mesh(
+                new THREE.BoxGeometry(0.1, 0.1, 40),
+                new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 })
+            );
+            line.position.set(0, 0.1, -15);
+            scene.add(line);
+        }
+        
+        function spawnNote(lane) {
+            const geo = new THREE.CylinderGeometry(0.6, 0.6, 0.5, 16);
+            const mat = new THREE.MeshStandardMaterial({
+                color: CONFIG.colors[lane],
+                emissive: CONFIG.colors[lane],
+                emissiveIntensity: 0.8,
+                metalness: 0.8,
+                roughness: 0.2
+            });
+            
+            const note = new THREE.Mesh(geo, mat);
+            note.position.set(lanePositions[lane], 0.25, -35);
+            note.rotation.x = Math.PI / 2;
+            note.lane = lane;
+            note.hit = false;
+            
+            // Glow
+            const glow = new THREE.PointLight(CONFIG.colors[lane], 0.5, 5);
+            note.add(glow);
+            
+            scene.add(note);
+            notes.push(note);
+        }
+        
+        function createHitEffect(position, color, type) {
+            // Ring burst
+            const ringGeo = new THREE.RingGeometry(0.5, 2, 32);
+            const ringMat = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 1,
+                side: THREE.DoubleSide
+            });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.position.copy(position);
+            ring.position.y = 0.5;
+            ring.rotation.x = -Math.PI / 2;
+            ring.scale.setScalar(0.1);
+            ring.userData = { type: 'ring', maxScale: 3 };
+            scene.add(ring);
+            particles.push(ring);
+            
+            // Show text
+            const effect = document.getElementById('hitEffect');
+            effect.className = type;
+            effect.textContent = type.toUpperCase() + '!';
+            effect.style.opacity = 1;
+            effect.style.transform = 'translate(-50%, -50%) scale(1.2)';
+            setTimeout(() => {
+                effect.style.opacity = 0;
+                effect.style.transform = 'translate(-50%, -50%) scale(1)';
+            }, 200);
+        }
+        
+        function createTrail(lane, color) {
+            for (let i = 0; i < 10; i++) {
+                const geo = new THREE.SphereGeometry(0.1);
+                const mat = new THREE.MeshBasicMaterial({ color });
+                const particle = new THREE.Mesh(geo, mat);
+                particle.position.set(
+                    lanePositions[lane] + (Math.random() - 0.5),
+                    0.5 + Math.random() * 0.5,
+                    3 + Math.random() * 2
+                );
+                particle.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.3,
+                    Math.random() * 0.2,
+                    Math.random() * 0.5
+                );
+                particle.life = 20;
+                scene.add(particle);
+                particles.push(particle);
+            }
+        }
+        
+        function handleKeyDown(e) {
+            if (!gameRunning) return;
+            
+            const lane = CONFIG.keys.indexOf(e.key.toLowerCase());
+            if (lane === -1) return;
+            
+            // Flash key
+            const key = scene.getObjectByName('key' + lane);
+            if (key) {
+                key.material.emissiveIntensity = 2;
+                setTimeout(() => key.material.emissiveIntensity = 0.5, 100);
+            }
+            
+            // Check for hit notes
+            let hitNote = null;
+            let hitQuality = null;
+            
+            for (let note of notes) {
+                if (note.lane === lane && !note.hit) {
+                    const distance = Math.abs(note.position.z - 3);
+                    
+                    if (distance < CONFIG.hitZone * 0.5) {
+                        hitNote = note;
+                        hitQuality = 'perfect';
+                        break;
+                    } else if (distance < CONFIG.hitZone) {
+                        hitNote = note;
+                        hitQuality = 'good';
+                    }
+                }
+            }
+            
+            if (hitNote) {
+                hitNote.hit = true;
+                scene.remove(hitNote);
+                notes = notes.filter(n => n !== hitNote);
+                
+                const points = hitQuality === 'perfect' ? 100 : 50;
+                const comboBonus = Math.min(combo, 10);
+                score += points * (1 + comboBonus * 0.1);
+                combo++;
+                
+                if (hitQuality === 'perfect') {
+                    perfectCount++;
+                    document.getElementById('lane' + lane).textContent = parseInt(document.getElementById('lane' + lane).textContent) + 1;
+                    document.getElementById('lane' + lane).className = 'lane-score perfect';
+                } else {
+                    goodCount++;
+                }
+                
+                createHitEffect(hitNote.position.clone(), CONFIG.colors[lane], hitQuality);
+                createTrail(lane, CONFIG.colors[lane]);
+                
+                updateUI();
+            }
+        }
+        
+        function updateUI() {
+            document.getElementById('score').textContent = Math.floor(score);
+            document.getElementById('combo').textContent = 'COMBO: ' + combo;
+            document.getElementById('accuracy').textContent = `PERFECT: ${perfectCount} | GOOD: ${goodCount} | MISS: ${missCount}`;
+        }
+        
+        function updateNotes() {
+            notes = notes.filter(note => {
+                note.position.z += CONFIG.noteSpeed;
+                note.rotation.z += 0.05;
+                
+                // Check if missed
+                if (note.position.z > 8 && !note.hit) {
+                    missCount++;
+                    combo = 0;
+                    createHitEffect(note.position.clone(), 0xff0000, 'miss');
+                    scene.remove(note);
+                    updateUI();
+                    return false;
+                }
+                
+                return true;
+            });
+        }
+        
+        function updateParticles() {
+            particles = particles.filter(p => {
+                if (p.userData && p.userData.type === 'ring') {
+                    p.scale.x += 0.2;
+                    p.scale.y += 0.2;
+                    p.material.opacity -= 0.05;
+                    if (p.material.opacity <= 0) {
+                        scene.remove(p);
+                        return false;
+                    }
+                } else {
+                    p.position.add(p.velocity);
+                    p.velocity.y -= 0.01;
+                    p.life--;
+                    if (p.life <= 0) {
+                        scene.remove(p);
+                        return false;
+                    }
+                }
+                return true;
+            });
+        }
+        
+        function spawnNotes() {
+            // Random pattern based on beat
+            const pattern = Math.random();
+            
+            if (pattern < 0.3) {
+                // Single note
+                spawnNote(Math.floor(Math.random() * 4));
+            } else if (pattern < 0.5) {
+                // Double
+                const lane1 = Math.floor(Math.random() * 4);
+                let lane2;
+                do { lane2 = Math.floor(Math.random() * 4); } while (lane2 === lane1);
+                spawnNote(lane1);
+                spawnNote(lane2);
+            } else if (pattern < 0.7) {
+                // Triple
+                const lanes = [0, 1, 2, 3].sort(() => Math.random() - 0.5).slice(0, 3);
+                lanes.forEach(l => spawnNote(l));
+            } else if (pattern < 0.85) {
+                // All four
+                for (let i = 0; i < 4; i++) spawnNote(i);
+            }
+        }
+        
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            gameRunning = true;
+            score = 0;
+            combo = 0;
+            perfectCount = 0;
+            goodCount = 0;
+            missCount = 0;
+            
+            // Clear existing notes
+            notes.forEach(n => scene.remove(n));
+            notes = [];
+            
+            updateUI();
+            
+            // Start beat spawning
+            beatInterval = setInterval(() => {
+                if (gameRunning) spawnNotes();
+            }, 60000 / bpm * 2); // Every 2 beats
+        }
+        
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (gameRunning) {
+                updateNotes();
+                updateParticles();
+                
+                // Pulse lanes with beat
+                const beat = Math.sin(Date.now() * 0.01) * 0.5 + 0.5;
+                lanes.forEach((lane, i) => {
+                    lane.material.opacity = 0.1 + beat * 0.05;
+                });
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        init();
+    </script>
+</body>
+</html>

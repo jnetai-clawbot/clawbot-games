@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUANTUM SPLIT</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #000; 
+            overflow: hidden; 
+            font-family: 'Orbitron', monospace;
+        }
+        #gameCanvas { display: block; }
+        #ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        #score {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 32px;
+            color: #fff;
+            text-shadow: 0 0 20px #fff;
+        }
+        #multiplier {
+            position: absolute;
+            top: 60px;
+            left: 20px;
+            font-size: 24px;
+            color: #ff0;
+            text-shadow: 0 0 15px #ff0;
+        }
+        #combo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 72px;
+            color: #0ff;
+            text-shadow: 0 0 40px #0ff;
+            opacity: 0;
+            transition: all 0.3s;
+        }
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, #111 0%, #000 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: all;
+        }
+        h1 {
+            font-size: 64px;
+            color: #fff;
+            letter-spacing: 15px;
+            animation: glitch 3s infinite;
+        }
+        @keyframes glitch {
+            0%, 90%, 100% { text-shadow: 2px 0 #0ff, -2px 0 #f0f; }
+            92% { text-shadow: -2px 0 #0ff, 2px 0 #f0f; }
+            94% { text-shadow: 2px 2px #0ff, -2px -2px #f0f; }
+        }
+        .subtitle {
+            color: #888;
+            margin-top: 10px;
+            font-size: 18px;
+            letter-spacing: 8px;
+        }
+        .btn {
+            padding: 15px 50px;
+            font-size: 20px;
+            background: transparent;
+            border: 2px solid #0ff;
+            color: #0ff;
+            cursor: pointer;
+            margin-top: 40px;
+            font-family: inherit;
+            letter-spacing: 3px;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: #0ff;
+            color: #000;
+            box-shadow: 0 0 30px #0ff;
+        }
+        .instructions {
+            margin-top: 40px;
+            color: #666;
+            text-align: center;
+            line-height: 2;
+        }
+        .powerup-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .powerup {
+            padding: 10px 20px;
+            background: rgba(0,255,255,0.2);
+            border: 1px solid #0ff;
+            border-radius: 5px;
+            color: #0ff;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <div id="ui">
+        <div id="score">0</div>
+        <div id="multiplier">x1</div>
+        <div id="combo"></div>
+        <div class="powerup-bar" id="powerupBar"></div>
+        
+        <div id="startScreen">
+            <h1>QUANTUM SPLIT</h1>
+            <p class="subtitle">DUAL REALITY SHOOTER</p>
+            <button class="btn" onclick="startGame()">PLAY</button>
+            <div class="instructions">
+                🎮 WASD - Move<br>
+                🖱️ Click - Shoot<br>
+                ⚡ Hold SHIFT - Split Reality<br>
+                🎯 Destroy enemies in BOTH realities!<br>
+                💀 Don't get hit!
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Game State
+        let scene, camera, renderer;
+        let player, bullets = [], enemies = [], particles = [], mirrors = [];
+        let score = 0, combo = 0, multiplier = 1;
+        let gameRunning = false, keys = {}, mouse = { x: 0, y: 0 };
+        let isSplit = false;
+        let lastShot = 0;
+        let activePowerups = {};
+        
+        // Two realities: 0 = blue, 1 = pink
+        let reality = 0;
+        
+        // Config
+        const CONFIG = {
+            playerSpeed: 0.25,
+            bulletSpeed: 2,
+            enemySpeed: 0.15,
+            spawnRate: 1500,
+            colors: {
+                reality0: 0x0088ff,
+                reality1: 0xff0088,
+                player: 0xffffff,
+                enemy: 0xff4444,
+                bullet: 0xffff00
+            }
+        };
+        
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000011);
+            scene.fog = new THREE.FogExp2(0x000011, 0.02);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 15, 30);
+            camera.lookAt(0, 0, 0);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gameCanvas'), antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            // Lights
+            const ambient = new THREE.AmbientLight(0x333344, 0.5);
+            scene.add(ambient);
+            
+            const light0 = new THREE.PointLight(CONFIG.colors.reality0, 1, 50);
+            light0.position.set(-20, 20, 0);
+            scene.add(light0);
+            
+            const light1 = new THREE.PointLight(CONFIG.colors.reality1, 1, 50);
+            light1.position.set(20, 20, 0);
+            scene.add(light1);
+            
+            // Ground - Split reality
+            createGround();
+            
+            // Player
+            createPlayer();
+            
+            // Event listeners
+            document.addEventListener('keydown', e => {
+                keys[e.key.toLowerCase()] = true;
+                if (e.key === 'Shift') toggleReality(true);
+            });
+            document.addEventListener('keyup', e => {
+                keys[e.key.toLowerCase()] = false;
+                if (e.key === 'Shift') toggleReality(false);
+            });
+            document.addEventListener('mousemove', e => {
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            });
+            document.addEventListener('mousedown', shoot);
+            window.addEventListener('resize', onResize);
+            
+            animate();
+        }
+        
+        function createGround() {
+            // Reality 0 (Left side - Blue)
+            const ground0 = new THREE.Mesh(
+                new THREE.PlaneGeometry(40, 60),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0x001133,
+                    emissive: CONFIG.colors.reality0,
+                    emissiveIntensity: 0.1,
+                    metalness: 0.8,
+                    roughness: 0.2
+                })
+            );
+            ground0.rotation.x = -Math.PI / 2;
+            ground0.position.x = -20;
+            ground0.name = 'ground0';
+            scene.add(ground0);
+            
+            // Reality 1 (Right side - Pink)
+            const ground1 = new THREE.Mesh(
+                new THREE.PlaneGeometry(40, 60),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0x330011,
+                    emissive: CONFIG.colors.reality1,
+                    emissiveIntensity: 0.1,
+                    metalness: 0.8,
+                    roughness: 0.2
+                })
+            );
+            ground1.rotation.x = -Math.PI / 2;
+            ground1.position.x = 20;
+            ground1.name = 'ground1';
+            scene.add(ground1);
+            
+            // Center divider
+            const divider = new THREE.Mesh(
+                new THREE.BoxGeometry(0.5, 1, 60),
+                new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.3 })
+            );
+            divider.position.y = 0.5;
+            scene.add(divider);
+            
+            // Grid lines
+            for (let i = -3; i <= 3; i++) {
+                const line0 = new THREE.Mesh(
+                    new THREE.BoxGeometry(40, 0.05, 0.1),
+                    new THREE.MeshBasicMaterial({ color: CONFIG.colors.reality0, transparent: true, opacity: 0.3 })
+                );
+                line0.position.set(-20, 0.1, i * 8);
+                scene.add(line0);
+                
+                const line1 = new THREE.Mesh(
+                    new THREE.BoxGeometry(40, 0.05, 0.1),
+                    new THREE.MeshBasicMaterial({ color: CONFIG.colors.reality1, transparent: true, opacity: 0.3 })
+                );
+                line1.position.set(20, 0.1, i * 8);
+                scene.add(line1);
+            }
+        }
+        
+        function createPlayer() {
+            const geometry = new THREE.OctahedronGeometry(1);
+            const material = new THREE.MeshStandardMaterial({
+                color: CONFIG.colors.player,
+                emissive: 0x444444,
+                metalness: 0.9,
+                roughness: 0.1
+            });
+            player = new THREE.Mesh(geometry, material);
+            player.position.set(0, 1, 0);
+            
+            // Player glow
+            const glow = new THREE.PointLight(CONFIG.colors.player, 1, 10);
+            player.add(glow);
+            
+            scene.add(player);
+        }
+        
+        function toggleReality(split) {
+            isSplit = split;
+            
+            // Visual effect
+            const ground0 = scene.getObjectByName('ground0');
+            const ground1 = scene.getObjectByName('ground1');
+            
+            if (isSplit) {
+                ground0.material.emissiveIntensity = 0.3;
+                ground1.material.emissiveIntensity = 0.3;
+                camera.position.x = 0;
+            } else {
+                ground0.material.emissiveIntensity = 0.1;
+                ground1.material.emissiveIntensity = 0.1;
+                camera.position.x = reality === 0 ? -20 : 20;
+            }
+        }
+        
+        function shoot() {
+            if (!gameRunning) return;
+            
+            const now = Date.now();
+            if (now - lastShot < 150) return;
+            lastShot = now;
+            
+            // Create bullet in current reality (or both if split)
+            const realities = isSplit ? [0, 1] : [reality];
+            
+            realities.forEach(r => {
+                const bullet = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.3),
+                    new THREE.MeshBasicMaterial({ color: CONFIG.colors.bullet })
+                );
+                
+                const xOffset = r === 0 ? -20 : 20;
+                bullet.position.copy(player.position);
+                bullet.position.x = xOffset;
+                
+                // Direction towards mouse
+                const target = new THREE.Vector3(
+                    mouse.x * 30 + xOffset,
+                    0,
+                    -mouse.y * 30
+                );
+                bullet.velocity = target.sub(bullet.position).normalize().multiplyScalar(CONFIG.bulletSpeed);
+                bullet.reality = r;
+                bullet.xOffset = xOffset;
+                
+                scene.add(bullet);
+                bullets.push(bullet);
+            });
+        }
+        
+        function createEnemy() {
+            // Decide reality: 0, 1, or BOTH
+            const spawnType = Math.random();
+            const realities = spawnType < 0.3 ? [0, 1] : [Math.random() < 0.5 ? 0 : 1];
+            
+            realities.forEach(r => {
+                const geometry = new THREE.TetrahedronGeometry(0.8);
+                const material = new THREE.MeshStandardMaterial({
+                    color: CONFIG.colors.enemy,
+                    emissive: CONFIG.colors.enemy,
+                    emissiveIntensity: 0.5
+                });
+                
+                const enemy = new THREE.Mesh(geometry, material);
+                
+                const xOffset = r === 0 ? -20 : 20;
+                enemy.position.set(
+                    xOffset + (Math.random() - 0.5) * 30,
+                    1,
+                    -40
+                );
+                
+                enemy.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.1,
+                    0,
+                    CONFIG.enemySpeed + Math.random() * 0.1
+                );
+                enemy.reality = r;
+                enemy.xOffset = xOffset;
+                enemy.health = 1;
+                
+                scene.add(enemy);
+                enemies.push(enemy);
+            });
+        }
+        
+        function createExplosion(position, color, count = 20) {
+            for (let i = 0; i < count; i++) {
+                const geo = new THREE.SphereGeometry(0.15);
+                const mat = new THREE.MeshBasicMaterial({ color });
+                const particle = new THREE.Mesh(geo, mat);
+                particle.position.copy(position);
+                particle.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.5,
+                    Math.random() * 0.3,
+                    (Math.random() - 0.5) * 0.5
+                );
+                particle.life = 40;
+                scene.add(particle);
+                particles.push(particle);
+            }
+        }
+        
+        function updatePlayer() {
+            const speed = CONFIG.playerSpeed;
+            
+            if (keys['w']) player.position.z -= speed;
+            if (keys['s']) player.position.z += speed;
+            if (keys['a']) player.position.x -= speed;
+            if (keys['d']) player.position.x += speed;
+            
+            // Clamp to arena bounds
+            if (isSplit) {
+                player.position.x = Math.max(-35, Math.min(35, player.position.x));
+            } else {
+                const bound = reality === 0 ? -5 : 5;
+                player.position.x = Math.max(reality === 0 ? -38 : 2, Math.min(reality === 0 ? 2 : 38, player.position.x));
+            }
+            player.position.z = Math.max(-25, Math.min(25, player.position.z));
+            
+            // Player rotation
+            player.rotation.x += 0.02;
+            player.rotation.y += 0.03;
+            
+            // Move camera smoothly
+            const targetX = isSplit ? 0 : (reality === 0 ? -20 : 20);
+            camera.position.x += (targetX - camera.position.x) * 0.1;
+            camera.lookAt(camera.position.x, 0, 0);
+        }
+        
+        function updateBullets() {
+            bullets = bullets.filter(bullet => {
+                bullet.position.add(bullet.velocity);
+                bullet.position.y = 1 + Math.sin(Date.now() * 0.01) * 0.2;
+                
+                // Remove if out of bounds
+                if (bullet.position.z < -35 || bullet.position.z > 35) {
+                    scene.remove(bullet);
+                    return false;
+                }
+                
+                // Check collision with enemies
+                enemies = enemies.filter(enemy => {
+                    if (enemy.reality === bullet.reality && 
+                        bullet.position.distanceTo(enemy.position) < 1.5) {
+                        // Hit!
+                        enemy.health--;
+                        createExplosion(enemy.position, 0xffff00, 10);
+                        
+                        if (enemy.health <= 0) {
+                            // Destroy enemy
+                            createExplosion(enemy.position, CONFIG.colors.enemy);
+                            scene.remove(enemy);
+                            
+                            // Score
+                            addScore(100);
+                            return false;
+                        }
+                        scene.remove(bullet);
+                        return false;
+                    }
+                    return true;
+                });
+                
+                return true;
+            });
+        }
+        
+        function updateEnemies() {
+            enemies.forEach(enemy => {
+                enemy.position.add(enemy.velocity);
+                enemy.rotation.x += 0.03;
+                enemy.rotation.y += 0.02;
+                
+                // Slight horizontal movement
+                enemy.position.x += Math.sin(Date.now() * 0.002 + enemy.id) * 0.02;
+                
+                // Check collision with player
+                if (player.position.distanceTo(enemy.position) < 2) {
+                    // Hit player
+                    if (activePowerups.shield) {
+                        createExplosion(enemy.position, 0x00ffff, 15);
+                        scene.remove(enemy);
+                        enemies = enemies.filter(e => e !== enemy);
+                    } else {
+                        takeDamage();
+                    }
+                }
+                
+                // Remove if passed
+                if (enemy.position.z > 30) {
+                    scene.remove(enemy);
+                    enemies = enemies.filter(e => e !== enemy);
+                }
+            });
+        }
+        
+        function updateParticles() {
+            particles = particles.filter(p => {
+                p.position.add(p.velocity);
+                p.velocity.y -= 0.01;
+                p.life--;
+                p.scale.setScalar(p.life / 40);
+                
+                if (p.life <= 0) {
+                    scene.remove(p);
+                    return false;
+                }
+                return true;
+            });
+        }
+        
+        function addScore(points) {
+            combo++;
+            multiplier = Math.min(10, 1 + Math.floor(combo / 5));
+            score += points * multiplier;
+            
+            document.getElementById('score').textContent = score;
+            document.getElementById('multiplier').textContent = 'x' + multiplier;
+            
+            if (combo % 5 === 0) {
+                const comboEl = document.getElementById('combo');
+                comboEl.textContent = multiplier + 'x COMBO!';
+                comboEl.style.opacity = '1';
+                comboEl.style.color = isSplit ? '#ff0' : (reality === 0 ? '#0ff' : '#f0f');
+                setTimeout(() => comboEl.style.opacity = '0', 800);
+            }
+        }
+        
+        function takeDamage() {
+            combo = 0;
+            multiplier = 1;
+            document.getElementById('multiplier').textContent = 'x1';
+            
+            createExplosion(player.position, 0xff0000, 25);
+            
+            // Screen shake
+            const original = camera.position.y;
+            camera.position.y -= 2;
+            setTimeout(() => camera.position.y = original, 100);
+            
+            // Flash
+            document.body.style.background = '#300';
+            setTimeout(() => document.body.style.background = '#000', 100);
+        }
+        
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            gameRunning = true;
+            score = 0;
+            combo = 0;
+            multiplier = 1;
+            player.position.set(0, 1, 0);
+            document.getElementById('score').textContent = '0';
+            document.getElementById('multiplier').textContent = 'x1';
+            
+            // Clear objects
+            bullets.forEach(b => scene.remove(b));
+            enemies.forEach(e => scene.remove(e));
+            particles.forEach(p => scene.remove(p));
+            bullets = [];
+            enemies = [];
+            particles = [];
+            
+            // Start spawning
+            spawnInterval = setInterval(createEnemy, CONFIG.spawnRate);
+        }
+        
+        function onResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        let spawnInterval;
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (gameRunning) {
+                updatePlayer();
+                updateBullets();
+                updateEnemies();
+                updateParticles();
+            }
+            
+            renderer.render(scene, camera);
+        }
+        
+        init();
+    </script>
+</body>
+</html>
