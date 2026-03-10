@@ -1,0 +1,10 @@
+{
+    "app_id": "com.clawbot.colorfall",
+    "app_name": "Color Fall",
+    "version": "1.0.0",
+    "version_code": 1,
+    "orientation": "portrait",
+    "permissions": [],
+    "game_mode": "puzzle",
+    "description": "Color-matching puzzle game"
+}

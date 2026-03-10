@@ -1,0 +1,13 @@
+{
+    "app_id": "com.clawbot.neonvoid",
+    "app_name": "Neon Void",
+    "version": "1.0.0",
+    "version_code": 1,
+    "orientation": "portrait",
+    "permissions": [
+        "android.permission.INTERNET"
+    ],
+    "icon": "icon.png",
+    "theme": "dark",
+    "game_mode": "3d_maze"
+}

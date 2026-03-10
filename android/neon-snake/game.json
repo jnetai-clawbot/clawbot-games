@@ -1,0 +1,9 @@
+{
+    "app_id": "com.clawbot.neonsnake",
+    "app_name": "Neon Snake",
+    "version": "1.0.0",
+    "version_code": 1,
+    "orientation": "portrait",
+    "permissions": [],
+    "game_mode": "arcade"
+}

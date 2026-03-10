@@ -1,0 +1,11 @@
+{
+    "app_id": "com.clawbot.quantumassault",
+    "app_name": "Quantum Assault",
+    "version": "1.0.0",
+    "version_code": 1,
+    "orientation": "landscape",
+    "permissions": [
+        "android.permission.INTERNET"
+    ],
+    "game_mode": "space_shooter"
+}
