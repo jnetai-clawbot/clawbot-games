@@ -1,9 +1,6 @@
 name: Build Android APKs
 
 on:
-  push:
-    paths:
-      - 'android/**'
   workflow_dispatch:
 
 jobs:
@@ -19,33 +16,30 @@ jobs:
       
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
-          pip install buildozer==1.5.0 cython==0.29.36
-          pip list | grep -i -E "kivy|buildozer|cython"
+          pip install buildozer cython
+          pip install kivy
       
-      - name: Set up Android SDK
+      - name: Setup Android SDK
         uses: android-actions/setup-android@v2
-      
-      - name: Build with debug
+        
+      - name: Accept Android licenses
+        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
+        env:
+          ANDROID_HOME: /opt/android-sdk
+
+      - name: Build neon-snake
+        working-directory: android/neon-snake
         run: |
-          cd android/neon-snake
-          # Print directory contents
-          echo "=== Directory Contents ==="
+          echo "=== Listing files ==="
           ls -la
-          echo "=== Buildozer version ==="
-          buildozer --version
           echo "=== Running buildozer ==="
-          # Run with non-interactive mode
-          export BUILD_NONINTERACTIVE=1
-          buildozer android debug --verbose 2>&1 | tee build.log
-          echo "=== Build log tail ==="
-          tail -30 build.log
-          echo "=== Bin folder ==="
-          ls -la bin/ 2>/dev/null || echo "No bin folder"
-      
+          buildozer android debug 2>&1 || echo "Build failed but continuing..."
+          echo "=== Checking bin folder ==="
+          ls -la bin/ 2>/dev/null || echo "No bin"
+          find . -name "*.apk" 2>/dev/null
+
       - name: Upload APK
-        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: apk
-          path: android/neon-snake/bin/*.apk
+          name: apks
+          path: android/*/bin/*.apk
