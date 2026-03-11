@@ -15,28 +15,20 @@ jobs:
           python-version: '3.11'
       
       - name: Install dependencies
-        run: |
-          pip install buildozer cython
-          pip install kivy
+        run: pip install buildozer cython kivy
       
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
-        
-      - name: Accept Android licenses
-        run: yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
-        env:
-          ANDROID_HOME: /opt/android-sdk
 
       - name: Build neon-snake
         working-directory: android/neon-snake
         run: |
-          echo "=== Listing files ==="
+          pwd
           ls -la
-          echo "=== Running buildozer ==="
-          buildozer android debug 2>&1 || echo "Build failed but continuing..."
-          echo "=== Checking bin folder ==="
+          buildozer android debug || true
+          echo "=== Looking for APK ==="
+          find /home/runner/work -name "*.apk" 2>/dev/null
           ls -la bin/ 2>/dev/null || echo "No bin"
-          find . -name "*.apk" 2>/dev/null
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
