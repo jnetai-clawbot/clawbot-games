@@ -16,7 +16,13 @@ jobs:
       - uses: android-actions/setup-android@v2
       - name: Build
         working-directory: android/neon-snake
-        run: buildozer android debug
+        run: |
+          ls -la
+          buildozer android debug 2>&1 | tee build.log
+          echo "===BUILD LOG END==="
+          cat build.log
+          ls -la bin/ 2>/dev/null || echo "No bin folder"
+          ls -la .buildozer/ 2>/dev/null || echo "No .buildozer"
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
