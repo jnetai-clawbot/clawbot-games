@@ -17,22 +17,21 @@ jobs:
         with:
           python-version: '3.11'
       
-      - name: Install buildozer
+      - name: Install dependencies
         run: pip install buildozer==1.5.0 cython==0.29.36
       
       - name: Set up Android SDK
         uses: android-actions/setup-android@v2
       
-      - name: Build all games
+      - name: Build neon-snake (simple game)
         run: |
-          for game in neon-void quantum-assault neon-snake color-fall; do
-            cd android/$game
-            buildozer init --non-interactive 2>/dev/null || true
-            buildozer android debug
-            cd ../..
-          done
+          cd android/neon-snake
+          ls -la
+          buildozer android debug --verbose 2>&1 | tail -50
       
-      - uses: actions/upload-artifact@v4
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
         with:
-          name: apks
-          path: android/*/bin/*.apk
+          name: apk
+          path: android/neon-snake/bin/*.apk
