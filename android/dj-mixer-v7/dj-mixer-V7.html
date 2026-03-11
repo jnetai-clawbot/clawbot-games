@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClawBot DJ Mixer V7</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root { --primary: #00ff88; --secondary: #ff0066; --bg: #0a0a0a; --deck: #1a1a1a; --text: #ffffff; --muted: #666666; --glow-green: 0 0 20px rgba(0, 255, 136, 0.5); --glow-pink: 0 0 20px rgba(255, 0, 102, 0.5); }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+        .bg-effects { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+        .bg-gradient { position: absolute; width: 100%; height: 100%; background: radial-gradient(ellipse at 20% 50%, rgba(0, 255, 136, 0.1) 0%, transparent 50%), radial-gradient(ellipse at 80% 50%, rgba(255, 0, 102, 0.1) 0%, transparent 50%); }
+        .visualizer { position: absolute; width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: space-around; padding: 20px; opacity: 0.3; }
+        .bar { width: 3px; background: linear-gradient(to top, var(--primary), var(--secondary)); border-radius: 2px; animation: visualize 0.5s ease-in-out infinite; }
+        @keyframes visualize { 0%, 100% { height: 20%; } 50% { height: 80%; } }
+        .container { position: relative; z-index: 1; max-width: 1800px; margin: 0 auto; padding: 15px; }
+        header { text-align: center; padding: 10px; margin-bottom: 10px; }
+        header h1 { font-size: 1.6em; background: linear-gradient(90deg, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        header .subtitle { color: var(--muted); font-size: 0.8em; margin-top: 3px; }
+        .auto-indicators { display: flex; justify-content: center; gap: 8px; margin-top: 6px; }
+        .auto-indicator { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.7em; animation: pulse 2s infinite; }
+        .auto-indicator.on { background: rgba(0, 255, 136, 0.2); color: var(--primary); }
+        .auto-indicator.off { background: rgba(102, 102, 102, 0.2); color: var(--muted); animation: none; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .main-mixer { display: grid; grid-template-columns: 1fr 200px 1fr; gap: 12px; align-items: start; }
+        .deck { background: var(--deck); border-radius: 12px; padding: 15px; border: 2px solid transparent; }
+        .deck.deck-a { border-color: var(--primary); }
+        .deck.deck-a.active { box-shadow: var(--glow-green); }
+        .deck.deck-b { border-color: var(--secondary); }
+        .deck.deck-b.active { box-shadow: var(--glow-pink); }
+        .deck-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .deck-name { font-size: 1.2em; font-weight: bold; }
+        .deck-a .deck-name { color: var(--primary); }
+        .deck-b .deck-name { color: var(--secondary); }
+        .deck-status { padding: 3px 10px; border-radius: 12px; font-size: 0.7em; font-weight: bold; }
+        .deck-a .deck-status { background: rgba(0, 255, 136, 0.2); color: var(--primary); }
+        .deck-b .deck-status { background: rgba(255, 0, 102, 0.2); color: var(--secondary); }
+        .deck-status.playing { animation: playingPulse 1s infinite; }
+        @keyframes playingPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.05); } }
+        .bpm-display { text-align: center; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px; margin-bottom: 10px; }
+        .bpm-value { font-size: 1.6em; font-weight: bold; font-family: monospace; }
+        .deck-a .bpm-value { color: var(--primary); }
+        .deck-b .bpm-value { color: var(--secondary); }
+        .bpm-label { font-size: 0.65em; color: var(--muted); }
+        .bpm-controls { display: flex; gap: 4px; margin-top: 6px; justify-content: center; }
+        .bpm-btn { padding: 5px 8px; background: #333; border: none; border-radius: 4px; color: var(--muted); cursor: pointer; font-size: 0.65em; transition: all 0.2s; }
+        .bpm-btn:hover { background: #444; color: var(--text); }
+        .bpm-btn.active { background: var(--primary); color: #000; }
+        .deck-b .bpm-btn.active { background: var(--secondary); color: #fff; }
+        .video-container { background: #000; border-radius: 6px; margin-bottom: 10px; height: 120px; display: flex; align-items: center; justify-content: center; }
+        .video-container video { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .video-container .no-video { color: var(--muted); font-size: 1.8em; }
+        .deck-a .video-container { border-bottom: 2px solid var(--primary); }
+        .deck-b .video-container { border-bottom: 2px solid var(--secondary); }
+        .waveform-container { background: #000; border-radius: 5px; height: 50px; margin-bottom: 5px; position: relative; cursor: pointer; }
+        .waveform { position: absolute; top: 0; left: 0; width: 50%; height: 100%; }
+        .deck-a .waveform { background: var(--primary); opacity: 0.5; }
+        .deck-b .waveform { background: var(--secondary); opacity: 0.5; }
+        .waveform-progress { position: absolute; top: 0; left: 0; height: 100%; background: rgba(255,255,255,0.2); }
+        .waveform-handle { position: absolute; top: 0; left: 0; width: 2px; height: 100%; background: #fff; }
+        .time-display { display: flex; justify-content: space-between; font-family: monospace; font-size: 0.75em; color: var(--muted); margin-bottom: 8px; }
+        .time-display .current { color: var(--text); }
+        .loop-controls { display: flex; gap: 3px; margin-bottom: 8px; }
+        .loop-btn { flex: 1; padding: 5px; background: #333; border: none; border-radius: 3px; color: var(--muted); cursor: pointer; font-size: 0.65em; }
+        .loop-btn:hover { background: #444; color: var(--text); }
+        .loop-btn.active { background: var(--primary); color: #000; }
+        .deck-b .loop-btn.active { background: var(--secondary); color: #fff; }
+        .track-info { text-align: center; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 6px; margin-bottom: 8px; }
+        .track-title { font-size: 0.85em; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .controls { display: flex; justify-content: center; gap: 6px; margin-bottom: 10px; }
+        .btn { border-radius: 50%; border: none; cursor: pointer; transition: transform 0.2s; display: flex; align-items: center; justify-content: center; }
+        .btn:hover { transform: scale(1.1); }
+        .btn-play { width: 55px; height: 55px; font-size: 1.2em; }
+        .deck-a .btn-play { background: var(--primary); color: #000; }
+        .deck-a .btn-play.paused { background: #333; color: var(--primary); border: 2px solid var(--primary); }
+        .deck-b .btn-play { background: var(--secondary); color: #fff; }
+        .deck-b .btn-play.paused { background: #333; color: var(--secondary); border: 2px solid var(--secondary); }
+        .effects-panel { background: rgba(0,0,0,0.3); border-radius: 6px; padding: 8px; margin-bottom: 10px; }
+        .effects-title { font-size: 0.7em; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 1px; }
+        .effect-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+        .effect-label { width: 45px; font-size: 0.65em; color: var(--muted); }
+        .effect-slider { flex: 1; height: 4px; -webkit-appearance: none; background: #333; border-radius: 2px; }
+        .effect-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 10px; border-radius: 50%; cursor: pointer; }
+        .deck-a .effect-slider::-webkit-slider-thumb { background: var(--primary); }
+        .deck-b .effect-slider::-webkit-slider-thumb { background: var(--secondary); }
+        .effect-value { width: 28px; text-align: right; font-size: 0.6em; font-family: monospace; }
+        .fx-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
+        .fx-btn { padding: 6px 3px; background: #333; border: none; border-radius: 3px; color: var(--muted); cursor: pointer; font-size: 0.6em; }
+        .fx-btn:hover { background: #444; color: var(--text); }
+        .fx-btn.active { background: var(--primary); color: #000; }
+        .deck-b .fx-btn.active { background: var(--secondary); color: #fff; }
+        .pitch-control { margin-top: 8px; }
+        .pitch-label { display: flex; justify-content: space-between; font-size: 0.65em; color: var(--muted); margin-bottom: 4px; }
+        .pitch-slider { width: 100%; height: 6px; -webkit-appearance: none; background: linear-gradient(90deg, var(--primary), #333 50%, var(--secondary)); border-radius: 3px; }
+        .pitch-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; cursor: pointer; }
+        .speed-control { margin-top: 6px; }
+        .speed-label { display: flex; justify-content: space-between; font-size: 0.65em; color: var(--muted); margin-bottom: 4px; }
+        .speed-slider { width: 100%; height: 6px; -webkit-appearance: none; background: linear-gradient(90deg, var(--primary), #333 50%, var(--secondary)); border-radius: 3px; }
+        .speed-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; cursor: pointer; }
+        .sliders { display: flex; flex-direction: column; gap: 5px; }
+        .slider-group { display: flex; align-items: center; gap: 5px; }
+        .slider-label { width: 32px; font-size: 0.6em; color: var(--muted); }
+        .slider-container { flex: 1; }
+        .slider { width: 100%; height: 4px; -webkit-appearance: none; background: #333; border-radius: 2px; }
+        .slider::-webkit-slider-thumb { -webkit-appearance: none; width: 9px; height: 9px; border-radius: 50%; }
+        .deck-a .slider::-webkit-slider-thumb { background: var(--primary); }
+        .deck-b .slider::-webkit-slider-thumb { background: var(--secondary); }
+        .slider-value { width: 28px; text-align: right; font-size: 0.65em; font-family: monospace; }
+        .crossfader-section { display: flex; flex-direction: column; align-items: center; padding: 12px; background: var(--deck); border-radius: 12px; }
+        .crossfader-label { font-size: 0.85em; margin-bottom: 8px; color: var(--muted); }
+        .crossfader-container { width: 140px; height: 35px; background: #000; border-radius: 18px; position: relative; }
+        .crossfader { position: absolute; width: 35px; height: 26px; background: linear-gradient(90deg, var(--primary), #fff 50%, var(--secondary)); border-radius: 5px; top: 50%; transform: translateY(-50%); cursor: grab; left: 50%; margin-left: -17px; }
+        .crossfader:active { cursor: grabbing; }
+        .crossfader-center { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.2); }
+        .crossfader-labels { display: flex; justify-content: space-between; width: 140px; margin-top: 4px; }
+        .crossfader-labels span { font-size: 0.7em; font-weight: bold; }
+        .crossfader-labels .label-a { color: var(--primary); }
+        .crossfader-labels .label-b { color: var(--secondary); }
+        .crossfader-value { font-size: 0.75em; color: var(--muted); margin-top: 2px; }
+        .master-section { margin-top: 15px; text-align: center; }
+        .master-label { font-size: 0.75em; color: var(--muted); margin-bottom: 8px; }
+        .knob-container { position: relative; width: 70px; height: 70px; margin: 0 auto; }
+        .knob { width: 70px; height: 70px; border-radius: 50%; background: conic-gradient(from 225deg, var(--primary) 0%, var(--secondary) 100%); position: relative; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .knob::before { content: ''; position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; background: #1a1a1a; border-radius: 50%; }
+        .knob::after { content: ''; position: absolute; top: 8px; left: 50%; width: 3px; height: 15px; background: var(--primary); border-radius: 2px; transform: translateX(-50%) rotate(0deg); }
+        .knob-value { margin-top: 8px; font-size: 0.85em; font-family: monospace; }
+        .auto-toggles { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; width: 100%; }
+        .auto-toggle { display: flex; align-items: center; gap: 6px; padding: 6px; background: rgba(255,255,255,0.05); border-radius: 5px; justify-content: center; }
+        .toggle-switch { position: relative; width: 32px; height: 18px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #333; transition: 0.3s; border-radius: 18px; }
+        .toggle-slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%; }
+        input:checked + .toggle-slider { background-color: var(--primary); }
+        input:checked + .toggle-slider:before { transform: translateX(14px); }
+        .auto-toggle-label { font-size: 0.7em; }
+        .playlist-section { margin-top: 15px; background: var(--deck); border-radius: 12px; padding: 12px; }
+        .playlist-section h3 { font-size: 0.85em; color: var(--muted); margin-bottom: 8px; }
+        .playlist { max-height: 150px; overflow-y: auto; }
+        .playlist-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: rgba(255,255,255,0.05); border-radius: 6px; margin-bottom: 5px; cursor: pointer; }
+        .playlist-item:hover { background: rgba(255,255,255,0.1); }
+        .playlist-item.playing-a { background: rgba(0,255,136,0.15); border-left: 2px solid var(--primary); }
+        .playlist-item.playing-b { background: rgba(255,0,102,0.15); border-left: 2px solid var(--secondary); }
+        .playlist-item-info { flex: 1; }
+        .playlist-item-title { font-weight: bold; font-size: 0.8em; }
+        .playlist-item-duration { font-size: 0.65em; color: var(--muted); font-family: monospace; }
+        .playlist-item-buttons { display: flex; gap: 2px; }
+        .playlist-item-btn { padding: 5px 8px; background: #333; border: none; border-radius: 3px; color: #fff; cursor: pointer; font-size: 0.65em; }
+        .playlist-empty { color: var(--muted); text-align: center; padding: 12px; font-size: 0.8em; }
+        .file-input-wrapper { margin-bottom: 10px; }
+        .file-input-wrapper input[type="file"] { display: none; }
+        .file-btn { width: 100%; padding: 8px; background: #333; border: 2px dashed #555; border-radius: 6px; color: var(--muted); cursor: pointer; text-align: center; transition: border-color 0.3s, color 0.3s; font-size: 0.75em; }
+        .file-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; }
+        .loading.show { opacity: 1; pointer-events: all; }
+        .loading-spinner { width: 35px; height: 35px; border: 3px solid #333; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 900px) { .main-mixer { grid-template-columns: 1fr; } .crossfader-section { flex-direction: row; flex-wrap: wrap; gap: 8px; } }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+    </style>
+</head>
+<body>
+    <div class="bg-effects">
+        <div class="bg-gradient"></div>
+        <div class="visualizer" id="visualizer"></div>
+    </div>
+    <div class="container">
+        <header>
+            <h1>🎧 ClawBot DJ Mixer V7</h1>
+            <p class="subtitle">Pro DJ System - Fixed Audio Issues</p>
+            <div class="auto-indicators">
+                <span class="auto-indicator on" id="autoMixIndicator">Auto Mix</span>
+                <span class="auto-indicator on" id="autoCueIndicator">Auto Cue</span>
+                <span class="auto-indicator on" id="bpmSyncIndicator">BPM Sync</span>
+            </div>
+        </header>
+        <div class="main-mixer">
+            <!-- Deck A -->
+            <div class="deck deck-a active" id="deckA">
+                <div class="deck-header">
+                    <span class="deck-name">DECK A</span>
+                    <span class="deck-status" id="statusA">READY</span>
+                </div>
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileA" accept="audio/*,video/*">
+                    <label for="fileA" class="file-btn">📁 Load Audio/Video</label>
+                </div>
+                <div class="bpm-display">
+                    <div class="bpm-value" id="bpmA">---</div>
+                    <div class="bpm-label">BPM</div>
+                    <div class="bpm-controls">
+                        <button class="bpm-btn" onclick="tapBPM('A')">TAP</button>
+                        <button class="bpm-btn" onclick="matchBPM('A')">SYNC</button>
+                    </div>
+                </div>
+                <div class="video-container">
+                    <video id="videoA" style="display: none;" playsinline></video>
+                    <div class="no-video" id="noVideoA">♪</div>
+                </div>
+                <div class="waveform-container" onclick="seekTo('A', event)">
+                    <div class="waveform"></div>
+                    <div class="waveform-progress" id="progressA" style="width: 0%"></div>
+                    <div class="waveform-handle" id="handleA"></div>
+                </div>
+                <div class="time-display">
+                    <span class="current" id="currentTimeA">00:00</span>
+                    <span id="durationA">00:00</span>
+                </div>
+                <div class="loop-controls">
+                    <button class="loop-btn" onclick="setLoop('A', 0)" id="loopA-0">OFF</button>
+                    <button class="loop-btn" onclick="setLoop('A', 1)" id="loopA-1">1</button>
+                    <button class="loop-btn" onclick="setLoop('A', 2)" id="loopA-2">2</button>
+                    <button class="loop-btn" onclick="setLoop('A', 4)" id="loopA-4">4</button>
+                    <button class="loop-btn" onclick="setLoop('A', 8)" id="loopA-8">8</button>
+                </div>
+                <div class="track-info">
+                    <div class="track-title" id="titleA">No track loaded</div>
+                </div>
+                <div class="controls">
+                    <button class="btn btn-play" id="playBtnA" onclick="togglePlay('A')">▶</button>
+                </div>
+                <div class="effects-panel">
+                    <div class="effects-title">🎛️ Effects</div>
+                    <div class="effect-row">
+                        <span class="effect-label">FILTER</span>
+                        <input type="range" class="effect-slider" id="filterA" min="0" max="100" value="50" oninput="updateFilter('A')">
+                        <span class="effect-value" id="filterValueA">50%</span>
+                    </div>
+                    <div class="effect-row">
+                        <span class="effect-label">REVERB</span>
+                        <input type="range" class="effect-slider" id="reverbA" min="0" max="100" value="0" oninput="updateReverb('A')">
+                        <span class="effect-value" id="reverbValueA">0%</span>
+                    </div>
+                    <div class="effect-row">
+                        <span class="effect-label">ECHO</span>
+                        <input type="range" class="effect-slider" id="echoA" min="0" max="100" value="0" oninput="updateEcho('A')">
+                        <span class="effect-value" id="echoValueA">0%</span>
+                    </div>
+                    <div class="effects-title" style="margin-top: 8px;">🔊 Sound FX</div>
+                    <div class="fx-buttons">
+                        <button class="fx-btn" onclick="toggleFX('A', 'highpass')" id="fxA-highpass">HIPASS</button>
+                        <button class="fx-btn" onclick="toggleFX('A', 'lowpass')" id="fxA-lowpass">LOPASS</button>
+                        <button class="fx-btn" onclick="toggleFX('A', 'bitcrush')" id="fxA-bitcrush">CRUSH</button>
+                        <button class="fx-btn" onclick="toggleFX('A', 'wah')" id="fxA-wah">WAH</button>
+                        <button class="fx-btn" onclick="toggleFX('A', 'drive')" id="fxA-drive">DRIVE</button>
+                        <button class="fx-btn" onclick="toggleFX('A', 'pan')" id="fxA-pan">PAN</button>
+                    </div>
+                    <div class="pitch-control">
+                        <div class="pitch-label"><span>PITCH</span><span id="pitchValueA">0%</span></div>
+                        <input type="range" class="pitch-slider" id="pitchA" min="-20" max="20" value="0" oninput="updatePitch('A')">
+                    </div>
+                    <div class="speed-control">
+                        <div class="speed-label"><span>SPEED</span><span id="speedValueA">100%</span></div>
+                        <input type="range" class="speed-slider" id="speedA" min="50" max="150" value="100" oninput="updateSpeed('A')">
+                    </div>
+                </div>
+                <div class="sliders">
+                    <div class="slider-group">
+                        <span class="slider-label">GAIN</span>
+                        <div class="slider-container"><input type="range" class="slider" id="gainA" min="0" max="150" value="100" oninput="updateGain('A')"></div>
+                        <span class="slider-value" id="gainValueA">100</span>
+                    </div>
+                    <div class="slider-group">
+                        <span class="slider-label">LOW</span>
+                        <div class="slider-container"><input type="range" class="slider" id="lowA" min="0" max="150" value="100" oninput="updateEQ('A', 'low')"></div>
+                        <span class="slider-value" id="lowValueA">100</span>
+                    </div>
+                    <div class="slider-group">
+                        <span class="slider-label">MID</span>
+                        <div class="slider-container"><input type="range" class="slider" id="midA" min="0" max="150" value="100" oninput="updateEQ('A', 'mid')"></div>
+                        <span class="slider-value" id="midValueA">100</span>
+                    </div>
+                    <div class="slider-group">
+                        <span class="slider-label">HIGH</span>
+                        <div class="slider-container"><input type="range" class="slider" id="highA" min="0" max="150" value="100" oninput="updateEQ('A', 'high')"></div>
+                        <span class="slider-value" id="highValueA">100</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Crossfader -->
+            <div class="crossfader-section">
+                <span class="crossfader-label">🎚️ CROSSFADER</span>
+                <div class="crossfader-container">
+                    <div class="crossfader-center"></div>
+                    <div class="crossfader" id="crossfader"></div>
+                </div>
+                <div class="crossfader-labels"><span class="label-a">A</span><span class="label-b">B</span></div>
+                <div class="crossfader-value" id="crossfadeValue">50/50</div>
+                <div class="master-section">
+                    <div class="master-label">MASTER</div>
+                    <div class="knob-container">
+                        <div class="knob" id="masterKnob" onclick="toggleMasterMute()"></div>
+                    </div>
+                    <div class="knob-value" id="masterValue">100%</div>
+                </div>
+                <div class="auto-toggles">
+                    <div class="auto-toggle">
+                        <label class="toggle-switch"><input type="checkbox" id="autoMix" checked onchange="toggleAutoMix()"><span class="toggle-slider"></span></label>
+                        <span class="auto-toggle-label">Auto Mix</span>
+                    </div>
+                    <div class="auto-toggle">
+                        <label class="toggle-switch"><input type="checkbox" id="autoCue" checked onchange="toggleAutoCue()"><span class="toggle-slider"></span></label>
+                        <span class="auto-toggle-label">Auto Cue</span>
+                    </div>
+                    <div class="auto-toggle">
+                        <label class="toggle-switch"><input type="checkbox" id="bpmSync" checked onchange="toggleBpmSync()"><span class="toggle-slider"></span></label>
+                        <span class="auto-toggle-label">BPM Sync</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Deck B -->
+            <div class="deck deck-b" id="deckB">
+                <div class="deck-header">
+                    <span class="deck-name">DECK B</span>
+                    <span class="deck-status" id="statusB">READY</span>
+                </div>
+                <div class="file-input-wrapper">
+                    <input type="file" id="fileB" accept="audio/*,video/*">
+                    <label for="fileB" class="file-btn">📁 Load Audio/Video</label>
+                </div>
+                <div class="bpm-display">
+                    <div class="bpm-value" id="bpmB">---</div>
+                    <div class="bpm-label">BPM</div>
+                    <div class="bpm-controls">
+                        <button class="bpm-btn" onclick="tapBPM('B')">TAP</button>
+                        <button class="bpm-btn" onclick="matchBPM('B')">SYNC</button>
+                    </div>
+                </div>
+                <div class="video-container">
+                    <video id="videoB" style="display: none;" playsinline></video>
+                    <div class="no-video" id="noVideoB">♪</div>
+                </div>
+                <div class="waveform-container" onclick="seekTo('B', event)">
+                    <div class="waveform" style="left: 0; right: auto;"></div>
+                    <div class="waveform-progress" id="progressB" style="width: 0%; left: 0; right: auto;"></div>
+                    <div class="waveform-handle" id="handleB" style="left: 0; right: auto;"></div>
+                </div>
+                <div class="time-display">
+                    <span class="current" id="currentTimeB">00:00</span>
+                    <span id="durationB">00:00</span>
+                </div>
+                <div class="loop-controls">
+                    <button class="loop-btn" onclick="setLoop('B', 0)" id="loopB-0">OFF</button>
+                    <button class="loop-btn" onclick="setLoop('B', 1)" id="loopB-1">1</button>
+                    <button class="loop-btn" onclick="setLoop('B', 2)" id="loopB-2">2</button>
+                    <button class="loop-btn" onclick="setLoop('B', 4)" id="loopB-4">4</button>
+                    <button class="loop-btn" onclick="setLoop('B', 8)" id="loopB-8">8</button>
+                </div>
+                <div class="track-info">
+                    <div class="track-title" id="titleB">No track loaded</div>
+                </div>
+                <div class="controls">
+                    <button class="btn btn-play" id="playBtnB" onclick="togglePlay('B')">▶</button>
+                </div>
+                <div class="effects-panel">
+                    <div class="effects-title">🎛️ Effects</div>
+                    <div class="effect-row">
+                        <span class="effect-label">FILTER</span>
+                        <input type="range" class="effect-slider" id="filterB" min="0" max="100" value="50" oninput="updateFilter('B')">
+                        <span class="effect-value" id="filterValueB">50%</span>
+                    </div>
+                    <div class="effect-row">
+                        <span class="effect-label">REVERB</span>
+                        <input type="range" class="effect-slider" id="reverbB" min="0" max="100" value="0" oninput="updateReverb('B')">
+                        <span class="effect-value" id="reverbValueB">0%</span>
+                    </div>
+                    <div class="effect-row">
+                        <span class="effect-label">ECHO</span>
+                        <input type="range" class="effect-slider" id="echoB" min="0" max="100" value="0" oninput="updateEcho('B')">
+                        <span class="effect-value" id="echoValueB">0%</span>
+                    </div>
+                    <div class="effects-title" style="margin-top: 8px;">🔊 Sound FX</div>
+                    <div class="fx-buttons">
+                        <button class="fx-btn" onclick="toggleFX('B', 'highpass')" id="fxB-highpass">HIPASS</button>
+                        <button class="fx-btn" onclick="toggleFX('B', 'lowpass')" id="fxB-lowpass">LOPASS</button>
+                        <button class="fx-btn" onclick="toggleFX('B', 'bitcrush')" id="fxB-bitcrush">CRUSH</button>
+                        <button class="fx-btn" onclick="toggleFX('B', 'wah')" id="fxB-wah">WAH</button>
+                        <button class="fx-btn" onclick="toggleFX('B', 'drive')" id="fxB-drive">DRIVE</button>
+                        <button class="fx-btn" onclick="toggleFX('B', 'pan')" id="fxB-pan">PAN</button>
+                    </div>
+                    <div class="pitch-control">
+                        <div class="pitch-label"><span>PITCH</span><span id="pitchValueB">0%</span></div>
+                        <input type="range" class="pitch-slider" id="pitchB" min="-20" max="20" value="0" oninput="updatePitch('B')">
+                    </div>
+                    <div class="speed-control">
+                        <div class="speed-label"><span>SPEED</span><span id="speedValueB">100%</span></div>
+                        <input type="range" class="speed-slider" id="speedB" min="50" max="150" value="100" oninput="updateSpeed('B')">
+                    </div>
+                </div>
+                <div class="sliders">
+                    <div class="slider-group">
+                        <span class="slider-label">GAIN</span>
+                        <div class="slider-container"><input type="range" class="slider" id="gainB" min="0" max="150" value="100" oninput="updateGain('B')"></div>
+                        <span class="slider-value" id="gainValueB">100</span>
+                    </div>
+                    <div class="slider-group">
+                        <span class="slider-label">LOW</span>
+                        <div class="slider-container"><input type="range" class="slider" id="lowB" min="0" max="150" value="100" oninput="updateEQ('B', 'low')"></div>
+                        <span class="slider-value" id="lowValueB">100</span>
+                    </div>
+                    <div class="slider-group">
+                        <span class="slider-label">MID</span>
+                        <div class="slider-container"><input type="range" class="slider" id="midB" min="0" max="150" value="100" oninput="updateEQ('B', 'mid')"></div>
+                        <span class="slider-value" id="midValueB">100</span>
+                    </div>
+                    <div class="slider-group">
+                        <span class="slider-label">HIGH</span>
+                        <div class="slider-container"><input type="range" class="slider" id="highB" min="0" max="150" value="100" oninput="updateEQ('B', 'high')"></div>
+                        <span class="slider-value" id="highValueB">100</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="playlist-section">
+            <h3>📋 Playlist</h3>
+            <div class="playlist" id="playlist"><p class="playlist-empty">Load audio/video files to get started</p></div>
+        </div>
+    </div>
+    <div class="loading" id="loading"><div class="loading-spinner"></div></div>
+    <script>
+        const state = {
+            deckA: { audio: null, video: null, source: null, gainNode: null, lowFilter: null, midFilter: null, highFilter: null, filterNode: null, reverbNode: null, delayNode: null, wetGain: null, dryGain: null, isPlaying: false, track: null, duration: 0, volume: 1, gainValue: 1, eq: { low: 1, mid: 1, high: 1 }, isVideo: false, mediaElement: null, loop: 0, loopStart: 0, loopEnd: 0, loopHandler: null, bpm: 0, pitch: 0, speed: 1, fx: {}, tapTimes: [], audioSetup: false },
+            deckB: { audio: null, video: null, source: null, gainNode: null, lowFilter: null, midFilter: null, highFilter: null, filterNode: null, reverbNode: null, delayNode: null, wetGain: null, dryGain: null, isPlaying: false, track: null, duration: 0, volume: 1, gainValue: 1, eq: { low: 1, mid: 1, high: 1 }, isVideo: false, mediaElement: null, loop: 0, loopStart: 0, loopEnd: 0, loopHandler: null, bpm: 0, pitch: 0, speed: 1, fx: {}, tapTimes: [], audioSetup: false },
+            crossfade: 0.5, master: 1, masterMuted: false, playlist: [], currentDeck: 'A', autoMix: true, autoCue: true, bpmSync: true, crossfadeDuration: 8000, isCrossfading: false
+        };
+        let audioCtx = null;
+        
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+        
+        function ensureAudioContext() {
+            initAudio();
+            // Always ensure context is running
+            if (audioCtx.state !== 'running') {
+                audioCtx.resume().catch(e => console.log('Resume error:', e));
+            }
+        }
+        
+        function isVideoFile(file) { const videoTypes = ['video/mp4', 'video/webm', 'video/ogg']; return videoTypes.includes(file.type) || file.name.match(/\.(mp4|webm|ogg)$/i); }
+        
+        function loadTrack(deck, file) {
+            const deckState = state['deck' + deck];
+            const isVideo = isVideoFile(file);
+            
+            // Stop any existing playback
+            if (deckState.mediaElement) {
+                deckState.mediaElement.pause();
+                deckState.mediaElement.currentTime = 0;
+                deckState.mediaElement.src = '';
+            }
+            
+            // Reset state
+            deckState.isPlaying = false;
+            deckState.audioSetup = false;
+            
+            showLoading(true);
+            try {
+                const url = URL.createObjectURL(file);
+                if (isVideo) {
+                    const video = document.getElementById('video' + deck);
+                    const noVideo = document.getElementById('noVideo' + deck);
+                    video.src = url; video.style.display = 'block'; noVideo.style.display = 'none';
+                    video.onloadedmetadata = function() {
+                        deckState.duration = video.duration;
+                        deckState.isVideo = true;
+                        deckState.mediaElement = video;
+                        deckState.video = video;
+                        deckState.audio = null;
+                        deckState.track = file.name;
+                        deckState.bpm = 0;
+                        document.getElementById('bpm' + deck).textContent = '---';
+                        document.getElementById('title' + deck).textContent = file.name;
+                        document.getElementById('playBtn' + deck).textContent = '▶';
+                        document.getElementById('playBtn' + deck).classList.remove('paused');
+                        updateTimeDisplay(deck, 0, deckState.duration);
+                        updateStatus(deck, 'LOADED');
+                        if (!state.playlist.find(p => p.name === file.name)) { state.playlist.push({ name: file.name, file: file, duration: deckState.duration, isVideo }); renderPlaylist(); }
+                        showLoading(false);
+                    };
+                } else {
+                    const video = document.getElementById('video' + deck);
+                    const noVideo = document.getElementById('noVideo' + deck);
+                    video.style.display = 'none'; noVideo.style.display = 'block'; noVideo.textContent = '♪';
+                    const audio = new Audio();
+                    audio.src = url;
+                    audio.onloadedmetadata = function() {
+                        deckState.duration = audio.duration;
+                        deckState.isVideo = false;
+                        deckState.mediaElement = audio;
+                        deckState.audio = audio;
+                        deckState.track = file.name;
+                        deckState.bpm = 0;
+                        document.getElementById('bpm' + deck).textContent = '---';
+                        document.getElementById('title' + deck).textContent = file.name;
+                        document.getElementById('playBtn' + deck).textContent = '▶';
+                        document.getElementById('playBtn' + deck).classList.remove('paused');
+                        updateTimeDisplay(deck, 0, deckState.duration);
+                        updateStatus(deck, 'LOADED');
+                        if (!state.playlist.find(p => p.name === file.name)) { state.playlist.push({ name: file.name, file: file, duration: deckState.duration, isVideo }); renderPlaylist(); }
+                        showLoading(false);
+                    };
+                    audio.onerror = function() { showLoading(false); alert('Error loading audio file'); };
+                }
+            } catch (error) { console.error('Error loading track:', error); showLoading(false); alert('Error loading track: ' + error.message); }
+        }
+        
+        function tapBPM(deck) {
+            const deckState = state['deck' + deck];
+            const now = Date.now();
+            deckState.tapTimes.push(now);
+            if (deckState.tapTimes.length > 4) deckState.tapTimes.shift();
+            if (deckState.tapTimes.length >= 2) {
+                let intervals = [];
+                for (let i = 1; i < deckState.tapTimes.length; i++) intervals.push(deckState.tapTimes[i] - deckState.tapTimes[i - 1]);
+                let avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+                let bpm = Math.round(60000 / avgInterval);
+                if (bpm >= 60 && bpm <= 200) { deckState.bpm = bpm; document.getElementById('bpm' + deck).textContent = bpm; }
+            }
+            if (deckState.tapTimes.length > 0 && now - deckState.tapTimes[deckState.tapTimes.length - 1] > 2000) deckState.tapTimes = [now];
+        }
+        
+        function matchBPM(deck) {
+            const deckState = state['deck' + deck];
+            const otherDeck = deck === 'A' ? 'B' : 'A';
+            const otherState = state['deck' + otherDeck];
+            if (deckState.bpm > 0 && otherState.bpm > 0) {
+                let ratio = otherState.bpm / deckState.bpm;
+                let pitchPercent = Math.round((ratio - 1) * 100);
+                pitchPercent = Math.max(-20, Math.min(20, pitchPercent));
+                document.getElementById('pitch' + deck).value = pitchPercent;
+                updatePitch(deck);
+            }
+        }
+        
+        function setupAudioChain(deck) {
+            const deckState = state['deck' + deck];
+            if (deckState.audioSetup || deckState.isVideo) return;
+            
+            try {
+                ensureAudioContext();
+                
+                deckState.source = audioCtx.createMediaElementSource(deckState.audio);
+                deckState.gainNode = audioCtx.createGain();
+                deckState.lowFilter = audioCtx.createBiquadFilter(); deckState.lowFilter.type = 'lowshelf'; deckState.lowFilter.frequency.value = 320;
+                deckState.midFilter = audioCtx.createBiquadFilter(); deckState.midFilter.type = 'peaking'; deckState.midFilter.frequency.value = 1000;
+                deckState.highFilter = audioCtx.createBiquadFilter(); deckState.highFilter.type = 'highshelf'; deckState.highFilter.frequency.value = 3200;
+                deckState.filterNode = audioCtx.createBiquadFilter(); deckState.filterNode.type = 'lowpass'; deckState.filterNode.frequency.value = 20000;
+                deckState.dryGain = audioCtx.createGain(); deckState.dryGain.gain.value = 1;
+                deckState.wetGain = audioCtx.createGain(); deckState.wetGain.gain.value = 0;
+                deckState.delayNode = audioCtx.createDelay(); deckState.delayNode.delayTime.value = 0.3;
+                
+                // Connect: source -> EQ -> filter -> dry/wet -> gain -> dest
+                deckState.source.connect(deckState.lowFilter);
+                deckState.lowFilter.connect(deckState.midFilter);
+                deckState.midFilter.connect(deckState.highFilter);
+                deckState.highFilter.connect(deckState.filterNode);
+                deckState.filterNode.connect(deckState.dryGain);
+                deckState.filterNode.connect(deckState.wetGain);
+                deckState.wetGain.connect(deckState.delayNode);
+                deckState.delayNode.connect(deckState.dryGain);
+                deckState.dryGain.connect(deckState.gainNode);
+                deckState.gainNode.connect(audioCtx.destination);
+                
+                deckState.audioSetup = true;
+            } catch (e) { console.log('Audio chain error:', e); }
+        }
+        
+        function togglePlay(deck) {
+            const deckState = state['deck' + deck];
+            if (!deckState.mediaElement) { alert('No track loaded!'); return; }
+            
+            // Always ensure audio context is running before play
+            ensureAudioContext();
+            
+            const btn = document.getElementById('playBtn' + deck);
+            
+            if (deckState.isPlaying) {
+                deckState.mediaElement.pause();
+                deckState.isPlaying = false;
+                btn.textContent = '▶';
+                btn.classList.remove('paused');
+                updateStatus(deck, 'PAUSED');
+            } else {
+                // Setup audio chain for audio files
+                if (!deckState.isVideo) {
+                    setupAudioChain(deck);
+                }
+                
+                // Calculate volume based on crossfade and master
+                let vol = (deck === 'A' ? (1 - state.crossfade) * state.master : state.crossfade * state.master);
+                let finalVol = vol * deckState.gainValue;
+                
+                // Apply volume immediately
+                if (deckState.isVideo) {
+                    deckState.video.volume = finalVol;
+                } else if (deckState.gainNode) {
+                    deckState.gainNode.gain.setValueAtTime(finalVol, audioCtx.currentTime);
+                }
+                
+                // Play
+                deckState.mediaElement.play().then(() => {
+                    deckState.isPlaying = true;
+                    btn.textContent = '⏸';
+                    btn.classList.add('paused');
+                    updateStatus(deck, 'PLAYING');
+                    state.currentDeck = deck;
+                    startProgressTracking(deck);
+                }).catch(e => {
+                    console.log('Play error:', e);
+                    alert('Could not play. Try clicking somewhere on the page first.');
+                });
+            }
+        }
+        
+        function seekTo(deck, event) {
+            const deckState = state['deck' + deck];
+            if (!deckState.mediaElement || !deckState.duration) return;
+            const container = event.currentTarget;
+            const rect = container.getBoundingClientRect();
+            const percent = (event.clientX - rect.left) / rect.width;
+            deckState.mediaElement.currentTime = percent * deckState.duration;
+        }
+        
+        function setLoop(deck, beats) {
+            const deckState = state['deck' + deck];
+            for (let i of [0, 1, 2, 4, 8]) { const btn = document.getElementById('loop' + deck + '-' + i); if (btn) btn.classList.toggle('active', i === beats); }
+            deckState.loop = beats;
+            if (!deckState.mediaElement) return;
+            
+            // Always remove existing loop handler first
+            if (deckState.loopHandler) {
+                try { deckState.mediaElement.removeEventListener('timeupdate', deckState.loopHandler); } catch(e) {}
+                deckState.loopHandler = null;
+            }
+            deckState.mediaElement.loop = false;
+            
+            if (beats === 0) return;
+            
+            let beatDuration = deckState.bpm > 0 ? (60 / deckState.bpm) : 2;
+            deckState.loopDuration = beatDuration * beats;
+            deckState.loopStart = deckState.mediaElement.currentTime;
+            deckState.loopEnd = deckState.loopStart + deckState.loopDuration;
+            deckState.loopHandler = function() {
+                if (this.currentTime >= deckState.loopEnd) {
+                    this.currentTime = deckState.loopStart;
+                }
+            };
+            deckState.mediaElement.addEventListener('timeupdate', deckState.loopHandler);
+        }
+        
+        function updateFilter(deck) {
+            let value = document.getElementById('filter' + deck).value;
+            document.getElementById('filterValue' + deck).textContent = value + '%';
+            let deckState = state['deck' + deck];
+            if (deckState.filterNode && audioCtx) {
+                if (value < 50) { deckState.filterNode.type = 'highpass'; deckState.filterNode.frequency.value = 100 + (50 - value) * 40; }
+                else { deckState.filterNode.type = 'lowpass'; deckState.filterNode.frequency.value = value * 40; }
+            }
+        }
+        
+        function updateReverb(deck) {
+            let value = document.getElementById('reverb' + deck).value;
+            document.getElementById('reverbValue' + deck).textContent = value + '%';
+            let deckState = state['deck' + deck];
+            if (deckState.wetGain && audioCtx) {
+                deckState.wetGain.gain.setTargetAtTime(value / 100, audioCtx.currentTime, 0.1);
+            }
+        }
+        
+        function updateEcho(deck) {
+            let value = document.getElementById('echo' + deck).value;
+            document.getElementById('echoValue' + deck).textContent = value + '%';
+            let deckState = state['deck' + deck];
+            if (deckState.delayNode && audioCtx) {
+                deckState.delayNode.delayTime.setTargetAtTime(0.1 + (value / 100) * 0.5, audioCtx.currentTime, 0.1);
+            }
+        }
+        
+        function toggleFX(deck, fx) {
+            let deckState = state['deck' + deck];
+            let btn = document.getElementById('fx' + deck + '-' + fx);
+            deckState.fx[fx] = !deckState.fx[fx];
+            btn.classList.toggle('active', deckState.fx[fx]);
+            if (deckState.filterNode && audioCtx) {
+                if (fx === 'highpass' && deckState.fx[fx]) { deckState.filterNode.type = 'highpass'; deckState.filterNode.frequency.value = 500; }
+                else if (fx === 'lowpass' && deckState.fx[fx]) { deckState.filterNode.type = 'lowpass'; deckState.filterNode.frequency.value = 3000; }
+                else if (fx === 'drive' && deckState.fx[fx]) { deckState.filterNode.frequency.value = 10000; }
+            }
+        }
+        
+        function updatePitch(deck) {
+            let value = parseFloat(document.getElementById('pitch' + deck).value);
+            document.getElementById('pitchValue' + deck).textContent = (value > 0 ? '+' : '') + value + '%';
+            let deckState = state['deck' + deck];
+            deckState.pitch = value;
+            if (deckState.mediaElement) deckState.mediaElement.playbackRate = 1 + (value / 100);
+        }
+        
+        function updateSpeed(deck) {
+            let value = parseFloat(document.getElementById('speed' + deck).value);
+            document.getElementById('speedValue' + deck).textContent = value + '%';
+            let deckState = state['deck' + deck];
+            deckState.speed = value / 100;
+            if (deckState.mediaElement) deckState.mediaElement.playbackRate = deckState.speed;
+        }
+        
+        function applyVolume(deck) {
+            const deckState = state['deck' + deck];
+            let vol = (deck === 'A' ? (1 - state.crossfade) * state.master : state.crossfade * state.master);
+            let finalVol = vol * deckState.gainValue;
+            
+            if (deckState.isVideo && deckState.mediaElement) {
+                deckState.mediaElement.volume = finalVol;
+            } else if (deckState.gainNode && audioCtx) {
+                deckState.gainNode.gain.setTargetAtTime(finalVol, audioCtx.currentTime, 0.05);
+            }
+        }
+        
+        function startProgressTracking(deck) {
+            let deckState = state['deck' + deck];
+            let media = deckState.mediaElement;
+            
+            function updateProgress() {
+                if (!deckState.isPlaying) return;
+                
+                // Ensure volume is correct during playback
+                applyVolume(deck);
+                
+                let current = media.currentTime;
+                let duration = deckState.duration;
+                let progress = (current / duration) * 100;
+                document.getElementById('progress' + deck).style.width = progress + '%';
+                document.getElementById('handle' + deck).style.left = progress + '%';
+                updateTimeDisplay(deck, current, duration);
+                
+                if (state.autoMix && !state.isCrossfading) { 
+                    if (duration - current <= state.crossfadeDuration / 1000 && duration - current > 0) triggerAutoCrossfade(deck); 
+                }
+                if (current >= duration - 0.1) { onTrackEnd(deck); return; }
+                requestAnimationFrame(updateProgress);
+            }
+            requestAnimationFrame(updateProgress);
+        }
+        
+        function triggerAutoCrossfade(currentDeck) {
+            let otherDeck = currentDeck === 'A' ? 'B' : 'A';
+            let otherDeckState = state['deck' + otherDeck];
+            if (!otherDeckState.mediaElement || otherDeckState.isPlaying) return;
+            
+            state.isCrossfading = true;
+            togglePlay(otherDeck);
+            
+            let startCrossfade = state.crossfade;
+            let targetCrossfade = otherDeck === 'B' ? 1 : 0;
+            let startTime = performance.now();
+            
+            function animate(currentTime) {
+                let elapsed = currentTime - startTime;
+                let progress = Math.min(elapsed / state.crossfadeDuration, 1);
+                let eased = 1 - Math.pow(1 - progress, 3);
+                state.crossfade = startCrossfade + (targetCrossfade - startCrossfade) * eased;
+                updateCrossfaderUI();
+                updateVolumes();
+                
+                if (progress < 1) requestAnimationFrame(animate);
+                else state.isCrossfading = false;
+            }
+            requestAnimationFrame(animate);
+        }
+        
+        function updateVolumes() {
+            applyVolume('A');
+            applyVolume('B');
+        }
+        
+        function updateCrossfaderUI() {
+            let crossfader = document.getElementById('crossfader');
+            let percent = state.crossfade * 100;
+            crossfader.style.left = 'calc(' + percent + '% - 17px)';
+            let aVol = Math.round((1 - state.crossfade) * 100);
+            let bVol = Math.round(state.crossfade * 100);
+            document.getElementById('crossfadeValue').textContent = aVol + '/' + bVol;
+        }
+        
+        function onTrackEnd(deck) {
+            let otherDeck = deck === 'A' ? 'B' : 'A';
+            let deckState = state['deck' + deck];
+            let otherDeckState = state['deck' + otherDeck];
+            deckState.isPlaying = false;
+            let btn = document.getElementById('playBtn' + deck);
+            btn.textContent = '▶';
+            btn.classList.remove('paused');
+            updateStatus(deck, 'ENDED');
+            
+            if (state.autoMix && otherDeckState.mediaElement && !otherDeckState.isPlaying) { 
+                togglePlay(otherDeck); 
+                state.crossfade = otherDeck === 'B' ? 1 : 0; 
+                updateCrossfaderUI(); 
+                updateVolumes(); 
+            }
+        }
+        
+        function updateGain(deck) {
+            let value = document.getElementById('gain' + deck).value;
+            document.getElementById('gainValue' + deck).textContent = value;
+            let deckState = state['deck' + deck];
+            deckState.gainValue = value / 100;
+            applyVolume(deck);
+        }
+        
+        function updateEQ(deck, band) {
+            let value = document.getElementById(band + deck).value;
+            document.getElementById(band + 'Value' + deck).textContent = value;
+            let deckState = state['deck' + deck];
+            deckState.eq[band] = value / 100;
+            let gainValue = (value / 100 - 1) * 12;
+            if (deckState[band + 'Filter'] && audioCtx) deckState[band + 'Filter'].gain.setTargetAtTime(gainValue, audioCtx.currentTime, 0.01);
+        }
+        
+        let knobDragging = false, knobStartY = 0, knobStartValue = 100;
+        function toggleMasterMute() { 
+            if (knobDragging) return; 
+            state.masterMuted = !state.masterMuted; 
+            if (state.masterMuted) { state.master = 0; document.getElementById('masterValue').textContent = 'MUTE'; } 
+            else { state.master = 1; updateMasterKnob(100); } 
+            updateVolumes(); 
+        }
+        function updateMasterKnob(value) { 
+            value = Math.max(0, Math.min(100, value)); 
+            state.master = value / 100; 
+            document.getElementById('masterValue').textContent = Math.round(value) + '%'; 
+            let knob = document.getElementById('masterKnob'); 
+            let percent = value / 100; 
+            let color = 'hsl(' + (120 - percent * 120) + ', 80%, 50%)'; 
+            knob.style.background = 'conic-gradient(from ' + (225 - percent * 270) + 'deg, var(--primary) 0%, ' + color + ' 100%)'; 
+            updateVolumes(); 
+        }
+        document.getElementById('masterKnob').addEventListener('mousedown', (e) => { knobDragging = true; knobStartY = e.clientY; knobStartValue = state.master * 100; e.preventDefault(); });
+        document.addEventListener('mousemove', (e) => { if (knobDragging) { let delta = knobStartY - e.clientY; let newValue = knobStartValue + delta * 0.5; updateMasterKnob(newValue); } });
+        document.addEventListener('mouseup', () => { knobDragging = false; });
+        document.getElementById('masterKnob').addEventListener('touchstart', (e) => { knobDragging = true; knobStartY = e.touches[0].clientY; knobStartValue = state.master * 100; });
+        document.addEventListener('touchmove', (e) => { if (knobDragging && e.touches[0]) { let delta = knobStartY - e.touches[0].clientY; let newValue = knobStartValue + delta * 0.5; updateMasterKnob(newValue); } });
+        document.addEventListener('touchend', () => { knobDragging = false; });
+        
+        function toggleAutoMix() { state.autoMix = document.getElementById('autoMix').checked; document.getElementById('autoMixIndicator').classList.toggle('on', state.autoMix); document.getElementById('autoMixIndicator').classList.toggle('off', !state.autoMix); }
+        function toggleAutoCue() { state.autoCue = document.getElementById('autoCue').checked; document.getElementById('autoCueIndicator').classList.toggle('on', state.autoCue); document.getElementById('autoCueIndicator').classList.toggle('off', !state.autoCue); }
+        function toggleBpmSync() { state.bpmSync = document.getElementById('bpmSync').checked; document.getElementById('bpmSyncIndicator').classList.toggle('on', state.bpmSync); document.getElementById('bpmSyncIndicator').classList.toggle('off', !state.bpmSync); }
+        
+        function updateTimeDisplay(deck, current, total) { 
+            let formatTime = (s) => { let m = Math.floor(s / 60); let sec = Math.floor(s % 60); return m.toString().padStart(2, '0') + ':' + sec.toString().padStart(2, '0'); }; 
+            document.getElementById('currentTime' + deck).textContent = formatTime(current); 
+            document.getElementById('duration' + deck).textContent = formatTime(total); 
+        }
+        function updateStatus(deck, status) { document.getElementById('status' + deck).textContent = status; document.getElementById('status' + deck).classList.toggle('playing', status === 'PLAYING'); }
+        function showLoading(show) { document.getElementById('loading').classList.toggle('show', show); }
+        
+        function renderPlaylist() { 
+            let playlist = document.getElementById('playlist'); 
+            if (state.playlist.length === 0) { playlist.innerHTML = '<p class="playlist-empty">Load audio/video files to get started</p>'; return; } 
+            playlist.innerHTML = state.playlist.map(track => { 
+                let playingA = track.name === state.deckA.track && state.deckA.isPlaying; 
+                let playingB = track.name === state.deckB.track && state.deckB.isPlaying; 
+                return '<div class="playlist-item ' + (playingA ? 'playing-a' : '') + ' ' + (playingB ? 'playing-b' : '') + '"><div class="playlist-item-info"><div class="playlist-item-title">' + (track.isVideo ? '🎬 ' : '♪ ') + track.name + '</div><div class="playlist-item-duration">' + Math.floor(track.duration / 60) + ':' + Math.floor(track.duration % 60).toString().padStart(2, '0') + '</div></div><div class="playlist-item-buttons"><button class="playlist-item-btn" onclick="loadToDeck(\'' + track.name + '\', \'A\')">A</button><button class="playlist-item-btn" onclick="loadToDeck(\'' + track.name + '\', \'B\')">B</button></div></div>'; 
+            }).join(''); 
+        }
+        
+        function loadToDeck(trackName, deck) { let track = state.playlist.find(t => t.name === trackName); if (track) loadTrack(deck, track.file); }
+        
+        document.getElementById('fileA').addEventListener('change', e => { if (e.target.files[0]) loadTrack('A', e.target.files[0]); });
+        document.getElementById('fileB').addEventListener('change', e => { if (e.target.files[0]) loadTrack('B', e.target.files[0]); });
+        
+        let crossfaderEl = document.getElementById('crossfader'); 
+        let crossfaderContainer = document.querySelector('.crossfader-container'); 
+        let isDraggingCF = false;
+        function handleCrossfaderMove(clientX) { 
+            let rect = crossfaderContainer.getBoundingClientRect(); 
+            let percent = (clientX - rect.left) / rect.width * 100; 
+            percent = Math.max(0, Math.min(100, percent)); 
+            state.crossfade = percent / 100; 
+            updateCrossfaderUI(); 
+            updateVolumes(); 
+        }
+        crossfaderEl.addEventListener('mousedown', () => isDraggingCF = true); 
+        document.addEventListener('mouseup', () => isDraggingCF = false); 
+        document.addEventListener('mousemove', e => { if (isDraggingCF) handleCrossfaderMove(e.clientX); });
+        crossfaderEl.addEventListener('touchstart', () => isDraggingCF = true); 
+        document.addEventListener('touchend', () => isDraggingCF = false); 
+        document.addEventListener('touchmove', e => { if (isDraggingCF && e.touches[0]) handleCrossfaderMove(e.touches[0].clientX); });
+        
+        let visualizer = document.getElementById('visualizer'); 
+        for (let i = 0; i < 30; i++) { let bar = document.createElement('div'); bar.className = 'bar'; bar.style.animationDelay = (i * 0.1) + 's'; visualizer.appendChild(bar); }
+        
+        updateCrossfaderUI();
+        
+        // Click anywhere to initialize audio context (fixes autoplay policy)
+        document.addEventListener('click', () => ensureAudioContext(), { once: true });
+        document.addEventListener('touchstart', () => ensureAudioContext(), { once: true });
+    </script>
+</body>
+</html>

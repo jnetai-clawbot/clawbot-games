@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-neon-void:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,17 +14,110 @@ jobs:
       - name: Install buildozer
         run: pip install buildozer
       - uses: android-actions/setup-android@v2
-      - name: Build
+      - name: Build Neon Void
+        working-directory: android/neon-void
+        run: |
+          echo "=== Building Neon Void ==="
+          buildozer android debug 2>&1 | tee build.log
+          echo "===BUILD LOG END==="
+          ls -la bin/ 2>/dev/null || echo "No bin folder"
+      - name: Upload Neon Void APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: neon-void-apk
+          path: android/neon-void/bin/*.apk
+
+  build-neon-snake:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install buildozer
+        run: pip install buildozer
+      - uses: android-actions/setup-android@v2
+      - name: Build Neon Snake
         working-directory: android/neon-snake
         run: |
+          echo "=== Building Neon Snake ==="
+          buildozer android debug 2>&1 | tee build.log
+          echo "===BUILD LOG END==="
+          ls -la bin/ 2>/dev/null || echo "No bin folder"
+      - name: Upload Neon Snake APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: neon-snake-apk
+          path: android/neon-snake/bin/*.apk
+
+  build-quantum-assault:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install buildozer
+        run: pip install buildozer
+      - uses: android-actions/setup-android@v2
+      - name: Build Quantum Assault
+        working-directory: android/quantum-assault
+        run: |
+          echo "=== Building Quantum Assault ==="
+          buildozer android debug 2>&1 | tee build.log
+          echo "===BUILD LOG END==="
+          ls -la bin/ 2>/dev/null || echo "No bin folder"
+      - name: Upload Quantum Assault APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: quantum-assault-apk
+          path: android/quantum-assault/bin/*.apk
+
+  build-color-fall:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install buildozer
+        run: pip install buildozer
+      - uses: android-actions/setup-android@v2
+      - name: Build Color Fall
+        working-directory: android/color-fall
+        run: |
+          echo "=== Building Color Fall ==="
+          buildozer android debug 2>&1 | tee build.log
+          echo "===BUILD LOG END==="
+          ls -la bin/ 2>/dev/null || echo "No bin folder"
+      - name: Upload Color Fall APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: color-fall-apk
+          path: android/color-fall/bin/*.apk
+
+  build-dj-mixer-v7:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install buildozer
+        run: pip install buildozer
+      - uses: android-actions/setup-android@v2
+      - name: Build DJ Mixer V7
+        working-directory: android/dj-mixer-v7
+        run: |
+          echo "=== Building DJ Mixer V7 ==="
           ls -la
           buildozer android debug 2>&1 | tee build.log
           echo "===BUILD LOG END==="
-          cat build.log
+          echo "=== Checking for APK ==="
           ls -la bin/ 2>/dev/null || echo "No bin folder"
           ls -la .buildozer/ 2>/dev/null || echo "No .buildozer"
-      - name: Upload APK
+      - name: Upload DJ Mixer V7 APK
         uses: actions/upload-artifact@v4
         with:
-          name: apks
-          path: android/*/bin/*.apk
+          name: dj-mixer-v7-apk
+          path: android/dj-mixer-v7/bin/*.apk

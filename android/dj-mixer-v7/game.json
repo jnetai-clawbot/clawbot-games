@@ -1,0 +1,18 @@
+{
+    "app_id": "com.clawbot.djmixerv7",
+    "app_name": "DJ Mixer V7",
+    "version": "1.0.0",
+    "version_code": 1,
+    "orientation": "portrait",
+    "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
+    ],
+    "icon": "icon.png",
+    "theme": "dark",
+    "game_mode": "web_app",
+    "description": "Professional DJ Mixer with dual decks, effects, and crossfader",
+    "url": "https://jnetai.com/apps/music_assistant/",
+    "fallback_url": "https://raw.githubusercontent.com/jnetai-clawbot/clawbot-games/main/dj-mixer-V7.html",
+    "debug": true
+}
