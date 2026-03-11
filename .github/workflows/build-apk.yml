@@ -18,16 +18,30 @@ jobs:
           python-version: '3.11'
       
       - name: Install dependencies
-        run: pip install buildozer==1.5.0 cython==0.29.36
+        run: |
+          pip install --upgrade pip
+          pip install buildozer==1.5.0 cython==0.29.36
+          pip list | grep -i -E "kivy|buildozer|cython"
       
       - name: Set up Android SDK
         uses: android-actions/setup-android@v2
       
-      - name: Build neon-snake (simple game)
+      - name: Build with debug
         run: |
           cd android/neon-snake
+          # Print directory contents
+          echo "=== Directory Contents ==="
           ls -la
-          buildozer android debug --verbose 2>&1 | tail -50
+          echo "=== Buildozer version ==="
+          buildozer --version
+          echo "=== Running buildozer ==="
+          # Run with non-interactive mode
+          export BUILD_NONINTERACTIVE=1
+          buildozer android debug --verbose 2>&1 | tee build.log
+          echo "=== Build log tail ==="
+          tail -30 build.log
+          echo "=== Bin folder ==="
+          ls -la bin/ 2>/dev/null || echo "No bin folder"
       
       - name: Upload APK
         if: success()
