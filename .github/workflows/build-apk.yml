@@ -18,9 +18,18 @@ jobs:
         working-directory: android/neon-void
         run: |
           echo "=== Building Neon Void ==="
-          buildozer android debug 2>&1 | tee build.log
+          echo "ANDROID_HOME: $ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
+          buildozer android debug --verbose 2>&1 | tee build.log
           echo "===BUILD LOG END==="
           ls -la bin/ 2>/dev/null || echo "No bin folder"
+          ls -la .buildozer/ 2>/dev/null || echo "No .buildozer folder"
+      - name: Upload Neon Void build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neon-void-build-log
+          path: android/neon-void/build.log
       - name: Upload Neon Void APK
         uses: actions/upload-artifact@v4
         with:
@@ -41,9 +50,17 @@ jobs:
         working-directory: android/neon-snake
         run: |
           echo "=== Building Neon Snake ==="
-          buildozer android debug 2>&1 | tee build.log
+          echo "ANDROID_HOME: $ANDROID_HOME"
+          buildozer android debug --verbose 2>&1 | tee build.log
           echo "===BUILD LOG END==="
           ls -la bin/ 2>/dev/null || echo "No bin folder"
+          ls -la .buildozer/ 2>/dev/null || echo "No .buildozer folder"
+      - name: Upload Neon Snake build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neon-snake-build-log
+          path: android/neon-snake/build.log
       - name: Upload Neon Snake APK
         uses: actions/upload-artifact@v4
         with:
@@ -64,9 +81,17 @@ jobs:
         working-directory: android/quantum-assault
         run: |
           echo "=== Building Quantum Assault ==="
-          buildozer android debug 2>&1 | tee build.log
+          echo "ANDROID_HOME: $ANDROID_HOME"
+          buildozer android debug --verbose 2>&1 | tee build.log
           echo "===BUILD LOG END==="
           ls -la bin/ 2>/dev/null || echo "No bin folder"
+          ls -la .buildozer/ 2>/dev/null || echo "No .buildozer folder"
+      - name: Upload Quantum Assault build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quantum-assault-build-log
+          path: android/quantum-assault/build.log
       - name: Upload Quantum Assault APK
         uses: actions/upload-artifact@v4
         with:
@@ -87,9 +112,17 @@ jobs:
         working-directory: android/color-fall
         run: |
           echo "=== Building Color Fall ==="
-          buildozer android debug 2>&1 | tee build.log
+          echo "ANDROID_HOME: $ANDROID_HOME"
+          buildozer android debug --verbose 2>&1 | tee build.log
           echo "===BUILD LOG END==="
           ls -la bin/ 2>/dev/null || echo "No bin folder"
+          ls -la .buildozer/ 2>/dev/null || echo "No .buildozer folder"
+      - name: Upload Color Fall build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: color-fall-build-log
+          path: android/color-fall/build.log
       - name: Upload Color Fall APK
         uses: actions/upload-artifact@v4
         with:
@@ -110,12 +143,19 @@ jobs:
         working-directory: android/dj-mixer-v7
         run: |
           echo "=== Building DJ Mixer V7 ==="
+          echo "ANDROID_HOME: $ANDROID_HOME"
           ls -la
-          buildozer android debug 2>&1 | tee build.log
+          buildozer android debug --verbose 2>&1 | tee build.log
           echo "===BUILD LOG END==="
           echo "=== Checking for APK ==="
           ls -la bin/ 2>/dev/null || echo "No bin folder"
           ls -la .buildozer/ 2>/dev/null || echo "No .buildozer"
+      - name: Upload DJ Mixer V7 build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dj-mixer-v7-build-log
+          path: android/dj-mixer-v7/build.log
       - name: Upload DJ Mixer V7 APK
         uses: actions/upload-artifact@v4
         with:
