@@ -12,7 +12,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install buildozer
-        run: pip install buildozer cython
+        run: pip install --upgrade buildozer pip && pip install cython
       - name: Install build dependencies
         run: sudo apt-get install -y autoconf autoconf-archive libtool pkg-config libtool autoconf-archive
       - uses: android-actions/setup-android@v2
@@ -20,11 +20,13 @@ jobs:
         working-directory: android/neon-void
         run: |
           export ACLOCAL_PATH=/usr/share/aclocal:/usr/share/autoconf-archive/aclocal
+          export P4A_BUILDKIT_CACHE=/tmp/p4a-cache
+          mkdir -p $P4A_BUILDKIT_CACHE
           export PKG_CONFIG_PATH=/usr/lib/pkgconfig
           echo "=== Building Neon Void ==="
           echo "ANDROID_HOME: $ANDROID_HOME"
           echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
-          buildozer android debug --verbose 2>&1 | tee build.log
+          P4A_IS_PY3=1 buildozer android debug --no-pip 2>&1 | tee build.log
           echo "===BUILD LOG END==="
           ls -la bin/ 2>/dev/null || echo "No bin folder"
           ls -la .buildozer/ 2>/dev/null || echo "No .buildozer folder"
@@ -48,7 +50,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install buildozer
-        run: pip install buildozer cython
+        run: pip install --upgrade buildozer pip && pip install cython
       - name: Install build dependencies
         run: sudo apt-get install -y autoconf autoconf-archive libtool pkg-config libtool autoconf-archive
       - uses: android-actions/setup-android@v2
@@ -56,10 +58,12 @@ jobs:
         working-directory: android/neon-snake
         run: |
           export ACLOCAL_PATH=/usr/share/aclocal:/usr/share/autoconf-archive/aclocal
+          export P4A_BUILDKIT_CACHE=/tmp/p4a-cache
+          mkdir -p $P4A_BUILDKIT_CACHE
           export PKG_CONFIG_PATH=/usr/lib/pkgconfig
           echo "=== Building Neon Snake ==="
           echo "ANDROID_HOME: $ANDROID_HOME"
-          buildozer android debug --verbose 2>&1 | tee build.log
+          P4A_IS_PY3=1 buildozer android debug --no-pip 2>&1 | tee build.log
           echo "===BUILD LOG END==="
           ls -la bin/ 2>/dev/null || echo "No bin folder"
           ls -la .buildozer/ 2>/dev/null || echo "No .buildozer folder"
@@ -83,7 +87,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install buildozer
-        run: pip install buildozer cython
+        run: pip install --upgrade buildozer pip && pip install cython
       - name: Install build dependencies
         run: sudo apt-get install -y autoconf autoconf-archive libtool pkg-config libtool autoconf-archive
       - uses: android-actions/setup-android@v2
@@ -91,10 +95,12 @@ jobs:
         working-directory: android/quantum-assault
         run: |
           export ACLOCAL_PATH=/usr/share/aclocal:/usr/share/autoconf-archive/aclocal
+          export P4A_BUILDKIT_CACHE=/tmp/p4a-cache
+          mkdir -p $P4A_BUILDKIT_CACHE
           export PKG_CONFIG_PATH=/usr/lib/pkgconfig
           echo "=== Building Quantum Assault ==="
           echo "ANDROID_HOME: $ANDROID_HOME"
-          buildozer android debug --verbose 2>&1 | tee build.log
+          P4A_IS_PY3=1 buildozer android debug --no-pip 2>&1 | tee build.log
           echo "===BUILD LOG END==="
           ls -la bin/ 2>/dev/null || echo "No bin folder"
           ls -la .buildozer/ 2>/dev/null || echo "No .buildozer folder"
@@ -118,7 +124,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install buildozer
-        run: pip install buildozer cython
+        run: pip install --upgrade buildozer pip && pip install cython
       - name: Install build dependencies
         run: sudo apt-get install -y autoconf autoconf-archive libtool pkg-config libtool autoconf-archive
       - uses: android-actions/setup-android@v2
@@ -126,10 +132,12 @@ jobs:
         working-directory: android/color-fall
         run: |
           export ACLOCAL_PATH=/usr/share/aclocal:/usr/share/autoconf-archive/aclocal
+          export P4A_BUILDKIT_CACHE=/tmp/p4a-cache
+          mkdir -p $P4A_BUILDKIT_CACHE
           export PKG_CONFIG_PATH=/usr/lib/pkgconfig
           echo "=== Building Color Fall ==="
           echo "ANDROID_HOME: $ANDROID_HOME"
-          buildozer android debug --verbose 2>&1 | tee build.log
+          P4A_IS_PY3=1 buildozer android debug --no-pip 2>&1 | tee build.log
           echo "===BUILD LOG END==="
           ls -la bin/ 2>/dev/null || echo "No bin folder"
           ls -la .buildozer/ 2>/dev/null || echo "No .buildozer folder"
@@ -153,7 +161,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install buildozer
-        run: pip install buildozer cython
+        run: pip install --upgrade buildozer pip && pip install cython
       - name: Install build dependencies
         run: sudo apt-get install -y autoconf autoconf-archive libtool pkg-config libtool autoconf-archive
       - uses: android-actions/setup-android@v2
@@ -161,11 +169,13 @@ jobs:
         working-directory: android/dj-mixer-v7
         run: |
           export ACLOCAL_PATH=/usr/share/aclocal:/usr/share/autoconf-archive/aclocal
+          export P4A_BUILDKIT_CACHE=/tmp/p4a-cache
+          mkdir -p $P4A_BUILDKIT_CACHE
           export PKG_CONFIG_PATH=/usr/lib/pkgconfig
           echo "=== Building DJ Mixer V7 ==="
           echo "ANDROID_HOME: $ANDROID_HOME"
           ls -la
-          buildozer android debug --verbose 2>&1 | tee build.log
+          P4A_IS_PY3=1 buildozer android debug --no-pip 2>&1 | tee build.log
           echo "===BUILD LOG END==="
           echo "=== Checking for APK ==="
           ls -la bin/ 2>/dev/null || echo "No bin folder"
