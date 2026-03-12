@@ -12,7 +12,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install buildozer
-        run: pip install buildozer
+        run: pip install buildozer cython
       - uses: android-actions/setup-android@v2
       - name: Build Neon Void
         working-directory: android/neon-void
@@ -44,7 +44,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install buildozer
-        run: pip install buildozer
+        run: pip install buildozer cython
       - uses: android-actions/setup-android@v2
       - name: Build Neon Snake
         working-directory: android/neon-snake
@@ -75,7 +75,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install buildozer
-        run: pip install buildozer
+        run: pip install buildozer cython
       - uses: android-actions/setup-android@v2
       - name: Build Quantum Assault
         working-directory: android/quantum-assault
@@ -106,7 +106,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install buildozer
-        run: pip install buildozer
+        run: pip install buildozer cython
       - uses: android-actions/setup-android@v2
       - name: Build Color Fall
         working-directory: android/color-fall
@@ -137,7 +137,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install buildozer
-        run: pip install buildozer
+        run: pip install buildozer cython
       - uses: android-actions/setup-android@v2
       - name: Build DJ Mixer V7
         working-directory: android/dj-mixer-v7
