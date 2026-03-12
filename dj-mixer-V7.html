@@ -47,7 +47,7 @@
         .bpm-btn:hover { background: #444; color: var(--text); }
         .bpm-btn.active { background: var(--primary); color: #000; }
         .deck-b .bpm-btn.active { background: var(--secondary); color: #fff; }
-        .video-container { background: #000; border-radius: 6px; margin-bottom: 10px; height: 120px; display: flex; align-items: center; justify-content: center; }
+        .video-container { background: #000; border-radius: 6px; margin-bottom: 10px; height: 140px; display: flex; align-items: center; justify-content: center; }
         .video-container video { max-width: 100%; max-height: 100%; object-fit: contain; }
         .video-container .no-video { color: var(--muted); font-size: 1.8em; }
         .deck-a .video-container { border-bottom: 2px solid var(--primary); }
@@ -150,8 +150,9 @@
         .file-input-wrapper input[type="file"] { display: none; }
         .file-btn { width: 100%; padding: 8px; background: #333; border: 2px dashed #555; border-radius: 6px; color: var(--muted); cursor: pointer; text-align: center; transition: border-color 0.3s, color 0.3s; font-size: 0.75em; }
         .file-btn:hover { border-color: var(--primary); color: var(--primary); }
-        .loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; }
+        .loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: transparent; display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; }
         .loading.show { opacity: 1; pointer-events: all; }
+        .loading-box { width: 80px; height: 80px; background: #000; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         .loading-spinner { width: 35px; height: 35px; border: 3px solid #333; border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
         @media (max-width: 900px) { .main-mixer { grid-template-columns: 1fr; } .crossfader-section { flex-direction: row; flex-wrap: wrap; gap: 8px; } }
@@ -181,6 +182,10 @@
                 <div class="deck-header">
                     <span class="deck-name">DECK A</span>
                     <span class="deck-status" id="statusA">READY</span>
+                    <div class="bpm-controls" style="margin-left: auto;">
+                        <button class="bpm-btn" onclick="tapBPM('A')">TAP</button>
+                        <button class="bpm-btn" onclick="matchBPM('A')">SYNC</button>
+                    </div>
                 </div>
                 <div class="file-input-wrapper">
                     <input type="file" id="fileA" accept="audio/*,video/*">
@@ -189,10 +194,6 @@
                 <div class="bpm-display">
                     <div class="bpm-value" id="bpmA">---</div>
                     <div class="bpm-label">BPM</div>
-                    <div class="bpm-controls">
-                        <button class="bpm-btn" onclick="tapBPM('A')">TAP</button>
-                        <button class="bpm-btn" onclick="matchBPM('A')">SYNC</button>
-                    </div>
                 </div>
                 <div class="video-container">
                     <video id="videoA" style="display: none;" playsinline></video>
@@ -314,6 +315,10 @@
                 <div class="deck-header">
                     <span class="deck-name">DECK B</span>
                     <span class="deck-status" id="statusB">READY</span>
+                    <div class="bpm-controls" style="margin-left: auto;">
+                        <button class="bpm-btn" onclick="tapBPM('B')">TAP</button>
+                        <button class="bpm-btn" onclick="matchBPM('B')">SYNC</button>
+                    </div>
                 </div>
                 <div class="file-input-wrapper">
                     <input type="file" id="fileB" accept="audio/*,video/*">
@@ -322,10 +327,6 @@
                 <div class="bpm-display">
                     <div class="bpm-value" id="bpmB">---</div>
                     <div class="bpm-label">BPM</div>
-                    <div class="bpm-controls">
-                        <button class="bpm-btn" onclick="tapBPM('B')">TAP</button>
-                        <button class="bpm-btn" onclick="matchBPM('B')">SYNC</button>
-                    </div>
                 </div>
                 <div class="video-container">
                     <video id="videoB" style="display: none;" playsinline></video>
@@ -417,7 +418,7 @@
             <div class="playlist" id="playlist"><p class="playlist-empty">Load audio/video files to get started</p></div>
         </div>
     </div>
-    <div class="loading" id="loading"><div class="loading-spinner"></div></div>
+    <div class="loading" id="loading"><div class="loading-box"><div class="loading-spinner"></div></div></div>
     <script>
         const state = {
             deckA: { audio: null, video: null, source: null, gainNode: null, lowFilter: null, midFilter: null, highFilter: null, filterNode: null, reverbNode: null, delayNode: null, wetGain: null, dryGain: null, isPlaying: false, track: null, duration: 0, volume: 1, gainValue: 1, eq: { low: 1, mid: 1, high: 1 }, isVideo: false, mediaElement: null, loop: 0, loopStart: 0, loopEnd: 0, loopHandler: null, bpm: 0, pitch: 0, speed: 1, fx: {}, tapTimes: [], audioSetup: false },
