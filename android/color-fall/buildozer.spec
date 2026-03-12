@@ -1,4 +1,5 @@
 [app]
+source.dir = .
 
 title = Color fall
 package.name = colorfall

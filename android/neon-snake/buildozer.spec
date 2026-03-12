@@ -1,4 +1,5 @@
 [app]
+source.dir = .
 
 title = Neon snake
 package.name = neonsnake

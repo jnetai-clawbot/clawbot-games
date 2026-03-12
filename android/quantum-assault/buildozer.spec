@@ -1,4 +1,5 @@
 [app]
+source.dir = .
 
 title = Quantum assault
 package.name = quantumassault

@@ -1,6 +1,7 @@
 [app]
 
 title = DJ Mixer V7
+source.dir = .
 package.name = djmixerv7
 package.domain = com.clawbot
 
