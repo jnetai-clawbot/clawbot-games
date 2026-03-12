@@ -14,7 +14,7 @@ jobs:
       - name: Install buildozer
         run: pip install buildozer cython
       - name: Install build dependencies
-        run: sudo apt-get install -y autoconf libtool
+        run: sudo apt-get install -y autoconf libtool autoconf-archive
       - uses: android-actions/setup-android@v2
       - name: Build Neon Void
         working-directory: android/neon-void
@@ -48,7 +48,7 @@ jobs:
       - name: Install buildozer
         run: pip install buildozer cython
       - name: Install build dependencies
-        run: sudo apt-get install -y autoconf libtool
+        run: sudo apt-get install -y autoconf libtool autoconf-archive
       - uses: android-actions/setup-android@v2
       - name: Build Neon Snake
         working-directory: android/neon-snake
@@ -81,7 +81,7 @@ jobs:
       - name: Install buildozer
         run: pip install buildozer cython
       - name: Install build dependencies
-        run: sudo apt-get install -y autoconf libtool
+        run: sudo apt-get install -y autoconf libtool autoconf-archive
       - uses: android-actions/setup-android@v2
       - name: Build Quantum Assault
         working-directory: android/quantum-assault
@@ -114,7 +114,7 @@ jobs:
       - name: Install buildozer
         run: pip install buildozer cython
       - name: Install build dependencies
-        run: sudo apt-get install -y autoconf libtool
+        run: sudo apt-get install -y autoconf libtool autoconf-archive
       - uses: android-actions/setup-android@v2
       - name: Build Color Fall
         working-directory: android/color-fall
@@ -147,7 +147,7 @@ jobs:
       - name: Install buildozer
         run: pip install buildozer cython
       - name: Install build dependencies
-        run: sudo apt-get install -y autoconf libtool
+        run: sudo apt-get install -y autoconf libtool autoconf-archive
       - uses: android-actions/setup-android@v2
       - name: Build DJ Mixer V7
         working-directory: android/dj-mixer-v7
