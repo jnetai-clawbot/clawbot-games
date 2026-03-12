@@ -14,11 +14,13 @@ jobs:
       - name: Install buildozer
         run: pip install buildozer cython
       - name: Install build dependencies
-        run: sudo apt-get install -y autoconf libtool autoconf-archive
+        run: sudo apt-get install -y autoconf autoconf-archive libtool pkg-config libtool autoconf-archive
       - uses: android-actions/setup-android@v2
       - name: Build Neon Void
         working-directory: android/neon-void
         run: |
+          export ACLOCAL_PATH=/usr/share/aclocal:/usr/share/autoconf-archive/aclocal
+          export PKG_CONFIG_PATH=/usr/lib/pkgconfig
           echo "=== Building Neon Void ==="
           echo "ANDROID_HOME: $ANDROID_HOME"
           echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
@@ -48,11 +50,13 @@ jobs:
       - name: Install buildozer
         run: pip install buildozer cython
       - name: Install build dependencies
-        run: sudo apt-get install -y autoconf libtool autoconf-archive
+        run: sudo apt-get install -y autoconf autoconf-archive libtool pkg-config libtool autoconf-archive
       - uses: android-actions/setup-android@v2
       - name: Build Neon Snake
         working-directory: android/neon-snake
         run: |
+          export ACLOCAL_PATH=/usr/share/aclocal:/usr/share/autoconf-archive/aclocal
+          export PKG_CONFIG_PATH=/usr/lib/pkgconfig
           echo "=== Building Neon Snake ==="
           echo "ANDROID_HOME: $ANDROID_HOME"
           buildozer android debug --verbose 2>&1 | tee build.log
@@ -81,11 +85,13 @@ jobs:
       - name: Install buildozer
         run: pip install buildozer cython
       - name: Install build dependencies
-        run: sudo apt-get install -y autoconf libtool autoconf-archive
+        run: sudo apt-get install -y autoconf autoconf-archive libtool pkg-config libtool autoconf-archive
       - uses: android-actions/setup-android@v2
       - name: Build Quantum Assault
         working-directory: android/quantum-assault
         run: |
+          export ACLOCAL_PATH=/usr/share/aclocal:/usr/share/autoconf-archive/aclocal
+          export PKG_CONFIG_PATH=/usr/lib/pkgconfig
           echo "=== Building Quantum Assault ==="
           echo "ANDROID_HOME: $ANDROID_HOME"
           buildozer android debug --verbose 2>&1 | tee build.log
@@ -114,11 +120,13 @@ jobs:
       - name: Install buildozer
         run: pip install buildozer cython
       - name: Install build dependencies
-        run: sudo apt-get install -y autoconf libtool autoconf-archive
+        run: sudo apt-get install -y autoconf autoconf-archive libtool pkg-config libtool autoconf-archive
       - uses: android-actions/setup-android@v2
       - name: Build Color Fall
         working-directory: android/color-fall
         run: |
+          export ACLOCAL_PATH=/usr/share/aclocal:/usr/share/autoconf-archive/aclocal
+          export PKG_CONFIG_PATH=/usr/lib/pkgconfig
           echo "=== Building Color Fall ==="
           echo "ANDROID_HOME: $ANDROID_HOME"
           buildozer android debug --verbose 2>&1 | tee build.log
@@ -147,11 +155,13 @@ jobs:
       - name: Install buildozer
         run: pip install buildozer cython
       - name: Install build dependencies
-        run: sudo apt-get install -y autoconf libtool autoconf-archive
+        run: sudo apt-get install -y autoconf autoconf-archive libtool pkg-config libtool autoconf-archive
       - uses: android-actions/setup-android@v2
       - name: Build DJ Mixer V7
         working-directory: android/dj-mixer-v7
         run: |
+          export ACLOCAL_PATH=/usr/share/aclocal:/usr/share/autoconf-archive/aclocal
+          export PKG_CONFIG_PATH=/usr/lib/pkgconfig
           echo "=== Building DJ Mixer V7 ==="
           echo "ANDROID_HOME: $ANDROID_HOME"
           ls -la
