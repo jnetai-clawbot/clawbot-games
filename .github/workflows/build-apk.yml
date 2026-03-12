@@ -4,112 +4,52 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-neon-void:
+  build-dj-mixer-v7:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install buildozer
-        run: pip install --upgrade buildozer pip && pip install cython
-      - name: Install build dependencies
-        run: sudo apt-get install -y autoconf autoconf-archive libtool pkg-config libtool autoconf-archive
-      - uses: android-actions/setup-android@v2
-      - name: Build Neon Void
-        working-directory: android/neon-void
+      - name: Build DJ Mixer V7 APK
         run: |
-          export ACLOCAL_PATH=/usr/share/aclocal:/usr/share/autoconf-archive/aclocal
-          export P4A_BUILDKIT_CACHE=/tmp/p4a-cache
-          mkdir -p $P4A_BUILDKIT_CACHE
-          export PKG_CONFIG_PATH=/usr/lib/pkgconfig
-          echo "=== Building Neon Void ==="
-          echo "ANDROID_HOME: $ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
-          P4A_IS_PY3=1 buildozer android debug --no-pip 2>&1 | tee build.log
-          echo "===BUILD LOG END==="
-          ls -la bin/ 2>/dev/null || echo "No bin folder"
-          ls -la .buildozer/ 2>/dev/null || echo "No .buildozer folder"
-      - name: Upload Neon Void build log
-        if: always()
+          docker run --rm -v $(pwd):/home/user/project -w /home/user/project kivy/python-forandroid:latest             sh -c "cd android/dj-mixer-v7 && p4a apk --requirements=python3,kivy --private .buildozer --package com.clawbot.djmixerv7 --name 'DJ Mixer V7' --version 1.0.0"
+      - name: Upload DJ Mixer V7 APK
         uses: actions/upload-artifact@v4
         with:
-          name: neon-void-build-log
-          path: android/neon-void/build.log
-      - name: Upload Neon Void APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: neon-void-apk
-          path: android/neon-void/bin/*.apk
+          name: dj-mixer-v7-apk
+          path: android/dj-mixer-v7/bin/*.apk
 
   build-neon-snake:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install buildozer
-        run: pip install --upgrade buildozer pip && pip install cython
-      - name: Install build dependencies
-        run: sudo apt-get install -y autoconf autoconf-archive libtool pkg-config libtool autoconf-archive
-      - uses: android-actions/setup-android@v2
-      - name: Build Neon Snake
-        working-directory: android/neon-snake
+      - name: Build Neon Snake APK
         run: |
-          export ACLOCAL_PATH=/usr/share/aclocal:/usr/share/autoconf-archive/aclocal
-          export P4A_BUILDKIT_CACHE=/tmp/p4a-cache
-          mkdir -p $P4A_BUILDKIT_CACHE
-          export PKG_CONFIG_PATH=/usr/lib/pkgconfig
-          echo "=== Building Neon Snake ==="
-          echo "ANDROID_HOME: $ANDROID_HOME"
-          P4A_IS_PY3=1 buildozer android debug --no-pip 2>&1 | tee build.log
-          echo "===BUILD LOG END==="
-          ls -la bin/ 2>/dev/null || echo "No bin folder"
-          ls -la .buildozer/ 2>/dev/null || echo "No .buildozer folder"
-      - name: Upload Neon Snake build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: neon-snake-build-log
-          path: android/neon-snake/build.log
+          docker run --rm -v $(pwd):/home/user/project -w /home/user/project kivy/python-forandroid:latest             sh -c "cd android/neon-snake && p4a apk --requirements=python3,kivy"
       - name: Upload Neon Snake APK
         uses: actions/upload-artifact@v4
         with:
           name: neon-snake-apk
           path: android/neon-snake/bin/*.apk
 
+  build-neon-void:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Neon Void APK
+        run: |
+          docker run --rm -v $(pwd):/home/user/project -w /home/user/project kivy/python-forandroid:latest             sh -c "cd android/neon-void && p4a apk --requirements=python3,kivy"
+      - name: Upload Neon Void APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: neon-void-apk
+          path: android/neon-void/bin/*.apk
+
   build-quantum-assault:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install buildozer
-        run: pip install --upgrade buildozer pip && pip install cython
-      - name: Install build dependencies
-        run: sudo apt-get install -y autoconf autoconf-archive libtool pkg-config libtool autoconf-archive
-      - uses: android-actions/setup-android@v2
-      - name: Build Quantum Assault
-        working-directory: android/quantum-assault
+      - name: Build Quantum Assault APK
         run: |
-          export ACLOCAL_PATH=/usr/share/aclocal:/usr/share/autoconf-archive/aclocal
-          export P4A_BUILDKIT_CACHE=/tmp/p4a-cache
-          mkdir -p $P4A_BUILDKIT_CACHE
-          export PKG_CONFIG_PATH=/usr/lib/pkgconfig
-          echo "=== Building Quantum Assault ==="
-          echo "ANDROID_HOME: $ANDROID_HOME"
-          P4A_IS_PY3=1 buildozer android debug --no-pip 2>&1 | tee build.log
-          echo "===BUILD LOG END==="
-          ls -la bin/ 2>/dev/null || echo "No bin folder"
-          ls -la .buildozer/ 2>/dev/null || echo "No .buildozer folder"
-      - name: Upload Quantum Assault build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: quantum-assault-build-log
-          path: android/quantum-assault/build.log
+          docker run --rm -v $(pwd):/home/user/project -w /home/user/project kivy/python-forandroid:latest             sh -c "cd android/quantum-assault && p4a apk --requirements=python3,kivy"
       - name: Upload Quantum Assault APK
         uses: actions/upload-artifact@v4
         with:
@@ -120,74 +60,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install buildozer
-        run: pip install --upgrade buildozer pip && pip install cython
-      - name: Install build dependencies
-        run: sudo apt-get install -y autoconf autoconf-archive libtool pkg-config libtool autoconf-archive
-      - uses: android-actions/setup-android@v2
-      - name: Build Color Fall
-        working-directory: android/color-fall
+      - name: Build Color Fall APK
         run: |
-          export ACLOCAL_PATH=/usr/share/aclocal:/usr/share/autoconf-archive/aclocal
-          export P4A_BUILDKIT_CACHE=/tmp/p4a-cache
-          mkdir -p $P4A_BUILDKIT_CACHE
-          export PKG_CONFIG_PATH=/usr/lib/pkgconfig
-          echo "=== Building Color Fall ==="
-          echo "ANDROID_HOME: $ANDROID_HOME"
-          P4A_IS_PY3=1 buildozer android debug --no-pip 2>&1 | tee build.log
-          echo "===BUILD LOG END==="
-          ls -la bin/ 2>/dev/null || echo "No bin folder"
-          ls -la .buildozer/ 2>/dev/null || echo "No .buildozer folder"
-      - name: Upload Color Fall build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: color-fall-build-log
-          path: android/color-fall/build.log
+          docker run --rm -v $(pwd):/home/user/project -w /home/user/project kivy/python-forandroid:latest             sh -c "cd android/color-fall && p4a apk --requirements=python3,kivy"
       - name: Upload Color Fall APK
         uses: actions/upload-artifact@v4
         with:
           name: color-fall-apk
           path: android/color-fall/bin/*.apk
-
-  build-dj-mixer-v7:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - name: Install buildozer
-        run: pip install --upgrade buildozer pip && pip install cython
-      - name: Install build dependencies
-        run: sudo apt-get install -y autoconf autoconf-archive libtool pkg-config libtool autoconf-archive
-      - uses: android-actions/setup-android@v2
-      - name: Build DJ Mixer V7
-        working-directory: android/dj-mixer-v7
-        run: |
-          export ACLOCAL_PATH=/usr/share/aclocal:/usr/share/autoconf-archive/aclocal
-          export P4A_BUILDKIT_CACHE=/tmp/p4a-cache
-          mkdir -p $P4A_BUILDKIT_CACHE
-          export PKG_CONFIG_PATH=/usr/lib/pkgconfig
-          echo "=== Building DJ Mixer V7 ==="
-          echo "ANDROID_HOME: $ANDROID_HOME"
-          ls -la
-          P4A_IS_PY3=1 buildozer android debug --no-pip 2>&1 | tee build.log
-          echo "===BUILD LOG END==="
-          echo "=== Checking for APK ==="
-          ls -la bin/ 2>/dev/null || echo "No bin folder"
-          ls -la .buildozer/ 2>/dev/null || echo "No .buildozer"
-      - name: Upload DJ Mixer V7 build log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: dj-mixer-v7-build-log
-          path: android/dj-mixer-v7/build.log
-      - name: Upload DJ Mixer V7 APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: dj-mixer-v7-apk
-          path: android/dj-mixer-v7/bin/*.apk
